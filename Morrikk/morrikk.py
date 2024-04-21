@@ -3,7 +3,7 @@ from perlin_noise import PerlinNoise
 from random import randint,random,seed
 from os.path import exists
 from os import listdir,remove
-from easygui import enterbox
+from easygui import enterbox,msgbox
 
 class Block():
     def __init__(self,cid):
@@ -171,7 +171,7 @@ class Player(Entity):
             self.jump+=96*dt
             if self.jump>64:
                 self.jump=0
-        if self.moved>=320:
+        if self.moved>=960:
             self.hungrier(1)
             self.moved=0
         if self.hunger<=0 and self.moved>=160:
@@ -394,25 +394,33 @@ def on_key_press(symbol,modifiers):
             worldname=worlds[curchoi+2]
             if worldname=='创建一个新世界':
                 worldname=enterbox('请输入这个世界的名字')+'.world'
-                seedd=int(enterbox('请输入这个世界的种子编号'))
-                seed(seedd)
-                noise=PerlinNoise(seed=seedd)
-                worldgnr()
-                ischoosing=False
-                freeze(0)
-                ischoosing=True
-                worlds=listdir('world/')
-                worlds.insert(0,' ')
-                worlds.insert(0,' ')
-                worlds.append('创建一个新世界')
-                worlds.append('删除一个世界')
-                worlds.append(' ')
-                worlds.append(' ')
-                curchoi=0
+                try:
+                    seedd=int(enterbox('请输入这个世界的种子编号'))
+                except ValueError:
+                    msgbox('种子错误：种子编号必须为数字')
+                else:
+                    msgbox('世界创建成功')
+                    seed(seedd)
+                    noise=PerlinNoise(seed=seedd)
+                    worldgnr()
+                    ischoosing=False
+                    freeze(0)
+                    ischoosing=True
+                    worlds=listdir('world/')
+                    worlds.insert(0,' ')
+                    worlds.insert(0,' ')
+                    worlds.append('创建一个新世界')
+                    worlds.append('删除一个世界')
+                    worlds.append(' ')
+                    worlds.append(' ')
+                    curchoi=0
             elif worldname=='删除一个世界':
                 worldname=enterbox('请输入被删除的世界的名字')+'.world'
                 if exists('world/'+worldname):
                     remove('world/'+worldname)
+                    msgbox('世界删除成功')
+                else:
+                    msgbox('未找到世界：请确保世界名正确并且没有.world后缀')
                 worlds=listdir('world/')
                 worlds.insert(0,' ')
                 worlds.insert(0,' ')
@@ -470,6 +478,7 @@ def on_key_press(symbol,modifiers):
             worlds.append('删除一个世界')
             worlds.append(' ')
             worlds.append(' ')
+            curchoi=0
     if symbol==pgt.window.key.PAGEUP:
         if iscrafting==True:
             if curchoi>0:
@@ -528,12 +537,15 @@ def on_mouse_press(x,y,button,modifiers):
     if button==pgt.window.mouse.LEFT and abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4:
         if drop[world[curx][cury].id]!=0:
             entities.append(Dropped(curx,cury,drop[world[curx][cury].id]))
+            entities[0].moved+=1
         world[curx][cury]=Block(0)
     if button==pgt.window.mouse.RIGHT and abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4:
         if world[curx][cury].id==0:
             entities[0].bput(curx,cury)
+            entities[0].moved+=1
         else:
             world[curx][cury].use()
+            entities[0].moved+=0.5
 
 @window.event
 def on_draw():
@@ -546,6 +558,14 @@ def on_draw():
             x=0,y=0,
             img=mainmenuimg)
         spr.draw()
+        starttip=pgt.text.Label('点击任意处以开始',
+                        font_name='Times New Roman',
+                        font_size=24,
+                        color=(0,0,0,255),
+                        x=window.width//2,
+                        y=window.height//4,
+                        anchor_x='center', anchor_y='center')
+        starttip.draw()
         return
 
     if ischoosing:
