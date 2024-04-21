@@ -152,8 +152,7 @@ class Player(Entity):
         if not self.falling():
             if self.fallen>=128:
                 self.hurt(self.fallen//32)
-            if self.jump<-33330:
-                self.fallen=0
+            self.fallen=0
         if self.isleft and self.canleft():
             for i in range(int(64*dt)):
                 if self.isleft and self.canleft():
@@ -171,13 +170,12 @@ class Player(Entity):
                     self.moved+=0.5
             self.jump+=96*dt
             if self.jump>64:
-                self.jump=-33332
+                self.jump=0
         if self.moved>=320:
             self.hungrier(1)
             self.moved=0
         if self.hunger<=0 and self.moved>=160:
             self.heart-=1
-            self.moved=0
             self.moved=0
         if self.heart<=0:
             isdead=True
@@ -401,6 +399,16 @@ def on_key_press(symbol,modifiers):
                 noise=PerlinNoise(seed=seedd)
                 worldgnr()
                 ischoosing=False
+                freeze(0)
+                ischoosing=True
+                worlds=listdir('world/')
+                worlds.insert(0,' ')
+                worlds.insert(0,' ')
+                worlds.append('创建一个新世界')
+                worlds.append('删除一个世界')
+                worlds.append(' ')
+                worlds.append(' ')
+                curchoi=0
             elif worldname=='删除一个世界':
                 worldname=enterbox('请输入被删除的世界的名字')+'.world'
                 if exists('world/'+worldname):
@@ -455,6 +463,13 @@ def on_key_press(symbol,modifiers):
             freeze(0)
             ischoosing=True
             entities[0]=Player()
+            worlds=listdir('world/')
+            worlds.insert(0,' ')
+            worlds.insert(0,' ')
+            worlds.append('创建一个新世界')
+            worlds.append('删除一个世界')
+            worlds.append(' ')
+            worlds.append(' ')
     if symbol==pgt.window.key.PAGEUP:
         if iscrafting==True:
             if curchoi>0:
