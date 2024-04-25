@@ -1,4 +1,6 @@
 # Morrikk
 
 #### 介绍
-An 2D sandbox game based on Pyglet.
+一个基于 $Pyglet$ 的沙盒游戏。
+
+使用时需安装第三方库 $pyglet$ 和 $easygui$ 。
