@@ -4,6 +4,7 @@ from random import randint,random,seed
 from os.path import exists
 from os import listdir,remove
 from easygui import enterbox,msgbox
+from time import time
 
 class Block():
     def __init__(self,cid):
@@ -22,6 +23,8 @@ class Item():
     def __init__(self,cid):
         self.id=cid
         self.cnt=0
+        self.diglvl=0
+        self.tid=0
     def use(self):
         if self.id==3:
             if entities[0].badd(6,1):
@@ -40,6 +43,14 @@ class Tool():
         self.tid=ctid
         self.id=12
         self.cnt=0
+        self.name=iname[cfirst]+' '+iname[csecond]+' '+tname[ctid]
+        self.diglvl=0
+        if self.first==9:
+            self.diglvl=1
+        elif self.first==10:
+            self.diglvl=2
+        elif self.first==16:
+            self.diglvl=3
 
 class Entity():
     def __init__(self,cx,cy,cxx,cyy,cid,cmxhe,cmxhu):
@@ -140,6 +151,20 @@ class Player(Entity):
                               font_name='Times New Roman',
                               font_size=9,
                               x=892-(i-1)*34,y=512-j*34,
+                              anchor_x='center',anchor_y='center',
+                              batch=ibatch))
+        if self.backpack[self.chosi][self.chosj].id!=12:
+            ilist.append(pgt.text.Label(iname[self.backpack[self.chosi][self.chosj].id],
+                              font_name='Times New Roman',
+                              font_size=9,
+                              x=896-2.5*34,y=500-5*34,
+                              anchor_x='center',anchor_y='center',
+                              batch=ibatch))
+        else:
+            ilist.append(pgt.text.Label(self.backpack[self.chosi][self.chosj].name,
+                              font_name='Times New Roman',
+                              font_size=9,
+                              x=896-2.5*34,y=500-5*34,
                               anchor_x='center',anchor_y='center',
                               batch=ibatch))
         for i in range(self.heart//2):
@@ -258,6 +283,7 @@ class Dropped(Entity):
     def __init__(self,cx,cy,ciid):
         super().__init__(cx,cy,0,0,1,0,0)
         self.iid=ciid
+        self.crtime=time()
     def draw(self):
         sp=pgt.sprite.Sprite(
                     img=iimages[self.iid],
@@ -271,11 +297,35 @@ class Dropped(Entity):
         if self.falling():
             self.move(0,64*dt)
     def isdel(self):
-        return abs(entities[0].x-self.x)<2 and abs(entities[0].y-self.y)<2 and entities[0].badd(self.iid,1)
+        return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<2 and abs(entities[0].y-self.y)<2 and entities[0].badd(self.iid,1)
     def delled(self):
         return
     def getfreeze(self):
         return str(self.id)+' '+str(self.iid)+' '+str(self.x)+' '+str(self.y)
+
+class DroppedTool(Dropped):
+    def __init__(self,cx,cy,ctid,cfirst,csecond):
+        super().__init__(cx,cy,12)
+        self.first=cfirst
+        self.second=csecond
+        self.tid=ctid
+    def isdel(self):
+        return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<2 and abs(entities[0].y-self.y)<2 and entities[0].baddt(self.tid,self.first,self.second)
+    def draw(self):
+        sp=pgt.sprite.Sprite(
+                    img=iimages[self.first],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    )
+        sp2=pgt.sprite.Sprite(
+                    img=iimages[self.second],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    )
+        sp.draw()
+        sp2.draw()
+    def getfreeze(self):
+        return str(self.tid)+' '+str(self.first)+' '+str(self.second)+' '+str(self.x)+' '+str(self.y)
 
 noise=PerlinNoise()
 worldname='test.world'
@@ -316,9 +366,9 @@ halfhungerimg=pgt.image.load('imgs/halfhunger.png')
 images=[]
 iimages=[]
 timages=[]
-for i in range(11):
+for i in range(12):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(17):
+for i in range(18):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(2):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -326,15 +376,20 @@ for i in range(2):
 hconst=16
 wconst=10
 edgconst=1
-fall=[True,False,False,False,True,True,False,False,False,True,False]
-drop=[0,1,2,3,4,0,5,6,7,11,13]
-put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0]
-iname=[]
-craftdict={6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
-           10:((8,1),(2,1)),13:((3,1),(2,1)),14:((3,1),),15:((14,1),(3,1)),
+fall=[True,False,False,False,True,True,False,False,False,True,False,True]
+drop=[0,1,2,3,4,0,5,6,7,11,13,17]
+put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0,11]
+diglvl=[0,0,1,0,0,0,2,0,0,0,1,0]
+digtype=[0,0,1,0,0,0,1,0,0,0,1,0]
+iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
+       '木板','镐头模板','木镐头','石镐头','小黄花',' ',
+       '工具制作桩','握柄模板','木握柄','铁镐头','小石子']
+tname=[' ','镐子']
+craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
+           10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
            16:((8,1),(5,1))}
-cancraft=[0,0,6,7,8,9,10,13,14,15,16,0,0]
-cancraftnum=[0,0,1,2,1,1,1,1,1,1,1,0,0]
+cancraft=[0,0,2,6,7,8,9,10,13,14,15,16,0,0]
+cancraftnum=[0,0,1,1,2,1,1,1,1,1,1,1,0,0]
 tooltype=[0,0,1,0,0]
 toolneed={1:(0,1)}
 toolitems={0:(9,10,16),1:(15,)}
@@ -361,8 +416,11 @@ def worldgnr():
                 world[i].append(Block(6))
             else:
                 world[i].append(Block(2))
-        if random()<0.2:
+        grandom=random()
+        if grandom<0.2:
             world[i][dheight]=Block(9)
+        elif grandom<0.4:
+            world[i][dheight]=Block(11)
         else:
             world[i][dheight]=Block(5)
         if i>3 and random()<0.125:
@@ -455,12 +513,12 @@ def on_key_press(symbol,modifiers):
                 except ValueError:
                     msgbox('种子错误：种子编号必须为数字')
                 else:
-                    msgbox('世界创建成功')
                     seed(seedd)
                     noise=PerlinNoise(seed=seedd)
                     worldgnr()
                     ischoosing=False
                     freeze(0)
+                    msgbox('世界创建成功')
                     ischoosing=True
                     worlds=listdir('world/')
                     worlds.insert(0,' ')
@@ -563,7 +621,7 @@ def on_key_press(symbol,modifiers):
             for i in craftdict[cancraft[curchoi+2]]:
                 if not entities[0].bdel(i[0],i[1]):
                     for j in range(cnt-1):
-                        entities[0].badd(i[0],i[1])
+                        entities[0].badd(craftdict[cancraft[curchoi+2]][j][0],craftdict[cancraft[curchoi+2]][j][1])
                     entities[0].bdel(cancraft[curchoi+2],cancraftnum[curchoi+2])
                     break
                 cnt+=1
@@ -619,7 +677,27 @@ def on_key_press(symbol,modifiers):
             entities[0].backpack[chosi][chosj]=entities[0].backpack[lchosi][lchosj]
             entities[0].backpack[lchosi][lchosj]=t
             entities[0].lchosi=-1
-                        
+    if symbol==pgt.window.key.K:
+        if not iscrafting and not istooling and not toolstep>=0:
+            if entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt>0:
+                if entities[0].backpack[entities[0].chosi][entities[0].chosj].id!=12:
+                    if modifiers & pgt.window.key.MOD_SHIFT:
+                        cntt=entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt
+                        for i in range(cntt):
+                            entities.append(Dropped(entities[0].x,entities[0].y-1,\
+                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].id))
+                            entities[0].bdel(entities[0].backpack[entities[0].chosi][entities[0].chosj].id,1)
+                    else:
+                        entities[0].bdel(entities[0].backpack[entities[0].chosi][entities[0].chosj].id,1)
+                        entities.append(Dropped(entities[0].x,entities[0].y-1,\
+                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].id))
+            else:
+                if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==12:
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj].id=0
+                    entities.append(DroppedTool(entities[0].x,entities[0].y-1,entities[0].backpack[entities[0].chosi][entities[0].chosj].tid,\
+                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].first,
+                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].second))
+            
 
 @window.event
 def on_key_release(symbol,modifiers):
@@ -642,7 +720,10 @@ def on_mouse_press(x,y,button,modifiers):
         return
     curx=hconst-int((x-entities[0].xx)/32)+entities[0].x
     cury=wconst-y//32+entities[0].y-edgconst-1
-    if button==pgt.window.mouse.LEFT and abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4:
+    if button==pgt.window.mouse.LEFT and \
+       abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4 and \
+       entities[0].backpack[entities[0].chosi][entities[0].chosj].diglvl>=diglvl[world[curx][cury].id] and \
+       (digtype[world[curx][cury].id]==0 or entities[0].backpack[entities[0].chosi][entities[0].chosj].tid==digtype[world[curx][cury].id]):
         if drop[world[curx][cury].id]!=0:
             entities.append(Dropped(curx,cury,drop[world[curx][cury].id]))
             entities[0].moved+=1
