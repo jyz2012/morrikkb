@@ -43,13 +43,38 @@ class Tool():
         self.tid=ctid
         self.id=12
         self.cnt=0
+        self.canuse=0
         self.name=iname[cfirst]+' '+iname[csecond]+' '+tname[ctid]
         self.diglvl=0
         if self.first==9:
             self.diglvl=1
+            self.canuse+=32
         elif self.first==10:
             self.diglvl=2
+            self.canuse+=64
         elif self.first==16:
+            self.diglvl=3
+            self.canuse+=128
+        elif self.first==25:
+            self.canuse+=192
+            self.diglvl=3
+        elif self.first==28:
+            self.canuse+=128
+            self.diglvl=3
+        if self.first==21:
+            self.diglvl=1
+            self.canuse+=32
+        elif self.first==22:
+            self.diglvl=2
+            self.canuse+=64
+        elif self.first==23:
+            self.diglvl=3
+            self.canuse+=128
+        elif self.first==26:
+            self.canuse+=192
+            self.diglvl=3
+        elif self.first==29:
+            self.canuse+=128
             self.diglvl=3
 
 class Entity():
@@ -325,7 +350,7 @@ class DroppedTool(Dropped):
         sp.draw()
         sp2.draw()
     def getfreeze(self):
-        return str(self.tid)+' '+str(self.first)+' '+str(self.second)+' '+str(self.x)+' '+str(self.y)
+        return str(self.tid)+' '+str(self.first)+' '+str(self.second)+' '+str(self.canuse)+' '+str(self.x)+' '+str(self.y)
 
 noise=PerlinNoise()
 worldname='test.world'
@@ -366,33 +391,41 @@ halfhungerimg=pgt.image.load('imgs/halfhunger.png')
 images=[]
 iimages=[]
 timages=[]
-for i in range(12):
+for i in range(15):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(18):
+for i in range(30):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
-for i in range(2):
+for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
 
 hconst=16
 wconst=10
 edgconst=1
-fall=[True,False,False,False,True,True,False,False,False,True,False,True]
-drop=[0,1,2,3,4,0,5,6,7,11,13,17]
-put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0,11]
-diglvl=[0,0,1,0,0,0,2,0,0,0,1,0]
-digtype=[0,0,1,0,0,0,1,0,0,0,1,0]
+fall=[True,False,False,False,True,True,False,False,False,
+      True,False,True,True,False,False]
+drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27]
+put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0,11,
+     0,0,0,0,0,0,0,0]
+diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3]
+digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
-       '工具制作桩','握柄模板','木握柄','铁镐头','小石子']
-tname=[' ','镐子']
+       '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
+       '棉花','线','锄头模板','木锄头头','石锄头头','铁锄头头',
+       '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头']
+tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
-           16:((8,1),(5,1))}
-cancraft=[0,0,2,6,7,8,9,10,13,14,15,16,0,0]
-cancraftnum=[0,0,1,1,2,1,1,1,1,1,1,1,0,0]
-tooltype=[0,0,1,0,0]
-toolneed={1:(0,1)}
-toolitems={0:(9,10,16),1:(15,)}
+           16:((8,1),(5,1)),19:((18,1),),20:((7,1),),21:((20,1),(3,1)),
+           22:((20,1),(2,1)),23:((20,1),(5,1)),25:((8,1),(24,1)),
+           26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1))}
+cancraft=[0,0,2,6,7,8,9,10,13,14,15,16,19,21,20,22,23,25,26,
+          28,29,0,0]
+cancraftnum=[0,0,1,1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,
+             1,1,0,0]
+tooltype=[0,0,1,2,0,0]
+toolneed={1:(0,1),2:(2,1)}
+toolitems={0:(9,10,16,25,28),1:(15,),2:(21,22,23,26,29)}
 
 entities=[Player()]
 
@@ -414,6 +447,10 @@ def worldgnr():
         for j in range(dheight+dwidth,height):
             if noise([i/8,j/8])>0.3:
                 world[i].append(Block(6))
+            elif noise([i/4,j/4])>0.45:
+                world[i].append(Block(13))
+            elif noise([i/4,j/4])<-0.45:
+                world[i].append(Block(14))
             else:
                 world[i].append(Block(2))
         grandom=random()
@@ -421,6 +458,8 @@ def worldgnr():
             world[i][dheight]=Block(9)
         elif grandom<0.4:
             world[i][dheight]=Block(11)
+        elif grandom<0.5:
+            world[i][dheight]=Block(12)
         else:
             world[i][dheight]=Block(5)
         if i>3 and random()<0.125:
@@ -455,7 +494,8 @@ def freeze(dt):
                 else:
                     f.write(str(entities[0].backpack[i][j].tid)+'^')
                     f.write(str(entities[0].backpack[i][j].first)+'^')
-                    f.write(str(entities[0].backpack[i][j].second)+' ')
+                    f.write(str(entities[0].backpack[i][j].second)+'^')
+                    f.write(str(entities[0].backpack[i][j].canuse)+' ')
             f.write('\n')
         for i in range(width):
             for j in range(height):
@@ -474,7 +514,8 @@ def readworld():
                 curs=f.readline()
                 curs=curs.strip().split(' ')
                 if curs[0]==1:
-                    entities.append(Drop(curs[2],curs[3],curs[1]))
+                    entities.append(Drop(curs[3],curs[4],curs[1]))
+                    entities[len(entities)-1].canuse=curs[2]
             for i in range(8):
                 linee=f.readline().strip().split(' ')
                 for j in range(6):
@@ -487,6 +528,7 @@ def readworld():
                             int(curline[0]),
                             int(curline[1]),
                             int(curline[2]))
+                        entities[0].backpack[i][j].canuse=int(curline[3])
             for i in range(width):
                 linee=f.readline().strip().split(' ')
                 world.append([])
@@ -727,6 +769,10 @@ def on_mouse_press(x,y,button,modifiers):
         if drop[world[curx][cury].id]!=0:
             entities.append(Dropped(curx,cury,drop[world[curx][cury].id]))
             entities[0].moved+=1
+            if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==12:
+                entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse-=1
+                if entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse<=0:
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
         world[curx][cury]=Block(0)
     if button==pgt.window.mouse.RIGHT and abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4:
         if world[curx][cury].id==0:
