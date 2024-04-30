@@ -44,38 +44,48 @@ class Tool():
         self.id=12
         self.cnt=0
         self.canuse=0
+        self.damage=0
         self.name=iname[cfirst]+' '+iname[csecond]+' '+tname[ctid]
         self.diglvl=0
         if self.first==9:
             self.diglvl=1
             self.canuse+=32
+            self.damage=3
         elif self.first==10:
             self.diglvl=2
             self.canuse+=64
+            self.damage=5
         elif self.first==16:
             self.diglvl=3
             self.canuse+=128
+            self.damage=7
         elif self.first==25:
             self.canuse+=192
             self.diglvl=3
+            self.damage=7
         elif self.first==28:
             self.canuse+=128
             self.diglvl=3
+            self.damage=7
         if self.first==21:
             self.diglvl=1
             self.canuse+=32
         elif self.first==22:
             self.diglvl=2
             self.canuse+=64
+            self.damage=3
         elif self.first==23:
             self.diglvl=3
             self.canuse+=128
+            self.damage=4
         elif self.first==26:
             self.canuse+=192
             self.diglvl=3
+            self.damage=6
         elif self.first==29:
             self.canuse+=128
             self.diglvl=3
+            self.damage=6
 
 class Entity():
     def __init__(self,cx,cy,cxx,cyy,cid,cmxhe,cmxhu):
@@ -85,6 +95,7 @@ class Entity():
         self.yy=cyy
         self.id=cid
         self.jump=0
+        self.ishurten=False
         self.heart=self.mxheart=cmxhe
         self.hunger=self.mxhunger=cmxhu
     def move(self,dxx,dyy):
@@ -108,6 +119,7 @@ class Entity():
             self.hunger=self.mxhunger
     def hurt(self,dx):
         self.heart-=dx
+        self.ishurten=True
         if self.heart>self.mxheart:
             self.heart=self.mxheart
 
@@ -131,6 +143,13 @@ class Player(Entity):
         sprite=pgt.sprite.Sprite(x=512,y=288,
                                    img=player1)
         sprite.draw()
+        if self.ishurten:
+            redr=pgt.shapes.Rectangle(x=512,
+                                      y=288,
+                                      width=32,height=64,
+                                      color=(255,0,0,128))
+            redr.draw()
+            self.ishurten=False
     def drawbp(self):
         ibatch=pgt.graphics.Batch()
         ilist=[]
@@ -322,20 +341,23 @@ class Dropped(Entity):
         if self.falling():
             self.move(0,64*dt)
     def isdel(self):
-        return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<2 and abs(entities[0].y-self.y)<2 and entities[0].badd(self.iid,1)
+        return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<=2 and abs(entities[0].y-self.y)<=2 and entities[0].badd(self.iid,1)
     def delled(self):
         return
     def getfreeze(self):
         return str(self.id)+' '+str(self.iid)+' '+str(self.x)+' '+str(self.y)
 
 class DroppedTool(Dropped):
-    def __init__(self,cx,cy,ctid,cfirst,csecond):
+    def __init__(self,cx,cy,ctid,cfirst,csecond,ccanuse,cdamage):
         super().__init__(cx,cy,12)
+        self.iid=3
         self.first=cfirst
         self.second=csecond
         self.tid=ctid
+        self.canuse=ccanuse
+        self.damage=cdamage
     def isdel(self):
-        return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<2 and abs(entities[0].y-self.y)<2 and entities[0].baddt(self.tid,self.first,self.second)
+        return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<=2 and abs(entities[0].y-self.y)<=2 and entities[0].baddt(self.tid,self.first,self.second,self.canuse,self.damage)
     def draw(self):
         sp=pgt.sprite.Sprite(
                     img=iimages[self.first],
@@ -350,7 +372,81 @@ class DroppedTool(Dropped):
         sp.draw()
         sp2.draw()
     def getfreeze(self):
-        return str(self.tid)+' '+str(self.first)+' '+str(self.second)+' '+str(self.canuse)+' '+str(self.x)+' '+str(self.y)
+        return str(self.tid)+' '+str(self.first)+' '+str(self.second)+' '+str(self.canuse)+' '+str(self.x)+' '+str(self.y)+' '+str(self.damage)
+
+class Bird(Entity):
+    def __init__(self,cx,cy):
+        super().__init__(cx,cy,0,0,2,10,10)
+        self.flick=0
+        self.toward=int(random()*5-0.03)
+        self.dtsum=0
+    def draw(self):
+        sp=pgt.sprite.Sprite(
+                    img=eimages[2][self.flick],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    )
+        sp.draw()
+        if self.ishurten:
+            redr=pgt.shapes.Rectangle(x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                                      y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                                      width=32,height=32,
+                                      color=(255,0,0,128))
+            redr.draw()
+            self.ishurten=False
+        self.flick+=1
+        self.flick%=5
+    def canleft(self):
+        return fall[world[self.x-1][self.y+1].id] and fall[world[self.x-1][self.y].id]
+    def canright(self):
+        return fall[world[self.x][self.y+1].id] and fall[world[self.x][self.y].id]
+    def canup(self):
+        return fall[world[self.x][self.y].id] and fall[world[self.x-1][self.y].id]
+    def candown(self):
+        return fall[world[self.x][self.y+1].id] and fall[world[self.x-1][self.y+1].id]
+    def move(self,dxx,dyy):
+        self.xx+=dxx
+        self.yy+=dyy
+        if self.xx>=32:
+            self.xx-=32
+            self.x-=1
+        elif self.xx<0:
+            self.xx+=32
+            self.x+=1
+        if self.yy>=32:
+            self.yy-=32
+            self.y+=1
+        elif self.yy<0:
+            self.yy+=32
+            self.y-=1
+    def update(self,dt):
+        if self.toward==1:
+            for i in range(int(64*dt)):
+                if self.canleft():
+                    self.move(1,0)
+        elif self.toward==2:
+            for i in range(int(64*dt)):
+                if self.canright():
+                    self.move(-1,0)
+        elif self.toward==3:
+            for i in range(int(64*dt)):
+                if self.canup():
+                  self.move(0,-1)
+        elif self.toward==0:
+            for i in range(int(64*dt)):
+                if self.candown():
+                    self.move(0,1)
+        self.dtsum+=dt
+        if self.dtsum>=7:
+            self.toward=int(random()*5-0.03)
+        if self.dtsum>=8:
+            self.dtsum=0
+    def isdel(self):
+        return (abs(self.x-entities[0].x)>=128 or abs(self.y-entities[0].y)>=128) or self.heart<=0
+    def delled(self):
+        pass
+    def getfreeze(self):
+        return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
 noise=PerlinNoise()
 worldname='test.world'
@@ -391,12 +487,16 @@ halfhungerimg=pgt.image.load('imgs/halfhunger.png')
 images=[]
 iimages=[]
 timages=[]
+eimages=[[],[]]
 for i in range(15):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
 for i in range(30):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
+eimages.append([])
+for i in range(5):
+    eimages[2].append(pgt.image.load('imgs/entities/2/'+str(i)+'.png'))
 
 hconst=16
 wconst=10
@@ -495,7 +595,8 @@ def freeze(dt):
                     f.write(str(entities[0].backpack[i][j].tid)+'^')
                     f.write(str(entities[0].backpack[i][j].first)+'^')
                     f.write(str(entities[0].backpack[i][j].second)+'^')
-                    f.write(str(entities[0].backpack[i][j].canuse)+' ')
+                    f.write(str(entities[0].backpack[i][j].canuse)+'^')
+                    f.write(str(entities[0].backpack[i][j].damage)+' ')
             f.write('\n')
         for i in range(width):
             for j in range(height):
@@ -513,9 +614,15 @@ def readworld():
             for i in range(enlen):
                 curs=f.readline()
                 curs=curs.strip().split(' ')
+                for i in range(len(curs)):
+                    curs[i]=int(curs[i])
                 if curs[0]==1:
-                    entities.append(Drop(curs[3],curs[4],curs[1]))
-                    entities[len(entities)-1].canuse=curs[2]
+                    entities.append(Dropped(curs[2],curs[3],curs[1]))
+                elif curs[0]==2:
+                    entities.append(Bird(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==3:
+                    entities.append(Dropped(curs[3],curs[4],curs[1],curs[2],curs[5]))
             for i in range(8):
                 linee=f.readline().strip().split(' ')
                 for j in range(6):
@@ -529,6 +636,7 @@ def readworld():
                             int(curline[1]),
                             int(curline[2]))
                         entities[0].backpack[i][j].canuse=int(curline[3])
+                        entities[0].backpack[i][j].damage=int(curline[4])
             for i in range(width):
                 linee=f.readline().strip().split(' ')
                 world.append([])
@@ -706,6 +814,14 @@ def on_key_press(symbol,modifiers):
                             cholist.append(entities[0].backpack[i][j].id)
                 cholist.append(0)
                 cholist.append(0)
+        else:
+            for i in range(1,len(entities)):
+                if abs(entities[i].x-entities[0].x)+abs(entities[i].y-entities[0].y)<=4:
+                    if entities[0].backpack[entities[0].chosi][entities[0].chosj].id!=12:
+                        entities[i].hurt(2)
+                    else:
+                        entities[i].hurt(entities[0].backpack[entities[0].chosi][entities[0].chosj].damage)
+            
     if symbol==pgt.window.key.EQUAL:
         if entities[0].lchosi==-1:
             entities[0].lchosi=entities[0].chosi
@@ -738,7 +854,9 @@ def on_key_press(symbol,modifiers):
                     entities[0].backpack[entities[0].chosi][entities[0].chosj].id=0
                     entities.append(DroppedTool(entities[0].x,entities[0].y-1,entities[0].backpack[entities[0].chosi][entities[0].chosj].tid,\
                                             entities[0].backpack[entities[0].chosi][entities[0].chosj].first,
-                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].second))
+                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].second,
+                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse,
+                                            entities[0].backpack[entities[0].chosi][entities[0].chosj].damage))
             
 
 @window.event
@@ -953,6 +1071,18 @@ def update(dt):
     if ismainmenu or ischoosing or isdead:
         return
     dct=0
+    if random()<0.125:
+        if random()>0.5:
+            newx=int(random()*32+32)+entities[0].x
+        else:
+            newx=int(random()*32+32)*-1+entities[0].x
+        if random()>0.5:
+            newy=int(random()*32+32)+entities[0].y-10
+        else:
+            newy=int(random()*32+32)*-1+entities[0].y-10
+        if fall[world[newx][newy].id] and \
+           newy<int(noise(newx/32)*28)+114:
+            entities.append(Bird(newx,newy))
     for i in range(len(entities)):
         entities[i-dct].update(dt)
         if entities[i-dct].isdel():
