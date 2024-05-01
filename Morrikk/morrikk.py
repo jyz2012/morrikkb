@@ -86,6 +86,14 @@ class Tool():
             self.canuse+=128
             self.diglvl=3
             self.damage=6
+        if self.second==15:
+            self.canuse+=8
+        elif self.second==30:
+            self.canuse+=16
+    def use(self,num):
+        entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse-=num
+        if entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse<=0:
+            entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
 
 class Entity():
     def __init__(self,cx,cy,cxx,cyy,cid,cmxhe,cmxhu):
@@ -135,14 +143,22 @@ class Player(Entity):
         self.lchosj=-1
         self.fallen=0
         self.moved=0
+        self.lastleft=True
+        self.flick=0
         for i in range(8):
             self.backpack.append([])
             for j in range(6):
                 self.backpack[i].append(Item(0))
     def draw(self):
-        sprite=pgt.sprite.Sprite(x=512,y=288,
-                                   img=player1)
+        if self.isleft or self.isright:
+            sprite=pgt.sprite.Sprite(x=512,y=288,
+                                   img=eimages[0][self.lastleft][self.flick%4])
+        else:
+            sprite=pgt.sprite.Sprite(x=512,y=288,
+                                   img=eimages[0][self.lastleft][0])
+
         sprite.draw()
+        self.flick+=1
         if self.ishurten:
             redr=pgt.shapes.Rectangle(x=512,
                                       y=288,
@@ -315,13 +331,19 @@ class Player(Entity):
     def delled(self):
         pass
     def canleft(self):
-        return fall[world[self.x+1][self.y-1].id] and fall[world[self.x+1][self.y-2+bool(self.yy)*2].id]
+        return fall[world[self.x+1][self.y-1].id] and \
+               fall[world[self.x+1][self.y-2].id] and \
+               fall[world[self.x+1][self.y-(self.yy==0)].id]
     def canright(self):
-        return fall[world[self.x][self.y-1].id] and fall[world[self.x][self.y-2+bool(self.yy)*2].id]
+        return fall[world[self.x-(self.xx==0 and not self.jump>=0.95)][self.y-1].id] and \
+               fall[world[self.x-(self.xx==0 and not self.jump>=0.95)][self.y-2].id] and \
+               fall[world[self.x-(self.xx==0 and not self.jump>=0.95)][self.y-(self.yy==0)].id]
     def canjump(self):
-        return fall[world[self.x][self.y-2].id]
+        return fall[world[self.x][self.y-2].id] and \
+               fall[world[self.x+1-(self.xx==0)][self.y-2].id]
     def falling(self):
-        return fall[world[self.x][self.y].id] and fall[world[self.x+1-(not bool(self.xx))][self.y].id]
+        return fall[world[self.x][self.y].id] and \
+               fall[world[self.x+1-(self.xx==0)][self.y].id]
     
 class Dropped(Entity):
     def __init__(self,cx,cy,ciid):
@@ -475,7 +497,6 @@ worlds.append('删除一个世界')
 worlds.append(' ')
 worlds.append(' ')
 
-player1=pgt.image.load('imgs/player1.png')
 mainmenuimg=pgt.image.load('imgs/mainmenu.png')
 itembg=pgt.image.load('imgs/items/itembg.png')
 chositembg=pgt.image.load('imgs/items/chositembg.png')
@@ -487,13 +508,18 @@ halfhungerimg=pgt.image.load('imgs/halfhunger.png')
 images=[]
 iimages=[]
 timages=[]
-eimages=[[],[]]
+eimages=[]
 for i in range(15):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(30):
+for i in range(31):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
+eimages.append([[],[]])
+for i in range(5):
+    eimages[0][0].append(pgt.image.load('imgs/entities/0/right/'+str(i)+'.png'))
+    eimages[0][1].append(pgt.image.load('imgs/entities/0/left/'+str(i)+'.png'))
+eimages.append([])
 eimages.append([])
 for i in range(5):
     eimages[2].append(pgt.image.load('imgs/entities/2/'+str(i)+'.png'))
@@ -505,27 +531,29 @@ fall=[True,False,False,False,True,True,False,False,False,
       True,False,True,True,False,False]
 drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27]
 put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0,11,
-     0,0,0,0,0,0,0,0]
+     0,0,0,0,0,0,0,0,0]
 diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3]
 digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
        '棉花','线','锄头模板','木锄头头','石锄头头','铁锄头头',
-       '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头']
+       '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头',
+       '石握柄']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
            16:((8,1),(5,1)),19:((18,1),),20:((7,1),),21:((20,1),(3,1)),
            22:((20,1),(2,1)),23:((20,1),(5,1)),25:((8,1),(24,1)),
-           26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1))}
-cancraft=[0,0,2,6,7,8,9,10,13,14,15,16,19,21,20,22,23,25,26,
-          28,29,0,0]
-cancraftnum=[0,0,1,1,2,1,1,1,1,1,1,1,2,1,1,1,1,1,1,
-             1,1,0,0]
+           26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1)),
+           30:((14,1),(2,1))}
+cancraft=[0,0,2,7,19,6,13,8,9,10,16,25,28,20,21,22,23,
+          26,29,14,15,30,0,0]
+cancraftnum=[0,0,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
-toolitems={0:(9,10,16,25,28),1:(15,),2:(21,22,23,26,29)}
+toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
 
 entities=[Player()]
 
@@ -706,8 +734,10 @@ def on_key_press(symbol,modifiers):
             isdead=False
     if symbol==pgt.window.key.A:
         entities[0].isleft=True
+        entities[0].lastleft=True
     if symbol==pgt.window.key.D:
         entities[0].isright=True
+        entities[0].lastleft=False
     if symbol==pgt.window.key.SPACE and entities[0].jump<0.95 and not entities[0].falling():
         entities[0].jump=1
     if symbol==pgt.window.key.UP:
@@ -879,7 +909,7 @@ def on_mouse_press(x,y,button,modifiers):
     if ischoosing==True or isdead==True:
         return
     curx=hconst-int((x-entities[0].xx)/32)+entities[0].x
-    cury=wconst-y//32+entities[0].y-edgconst-1
+    cury=wconst-int((y-entities[0].yy)/32)+entities[0].y-edgconst-1
     if button==pgt.window.mouse.LEFT and \
        abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4 and \
        entities[0].backpack[entities[0].chosi][entities[0].chosj].diglvl>=diglvl[world[curx][cury].id] and \
@@ -888,9 +918,7 @@ def on_mouse_press(x,y,button,modifiers):
             entities.append(Dropped(curx,cury,drop[world[curx][cury].id]))
             entities[0].moved+=1
             if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==12:
-                entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse-=1
-                if entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse<=0:
-                    entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
+                entities[0].backpack[entities[0].chosi][entities[0].chosj].use(1)
         world[curx][cury]=Block(0)
     if button==pgt.window.mouse.RIGHT and abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4:
         if world[curx][cury].id==0:
@@ -964,6 +992,8 @@ def on_draw():
     
     for i in entities:
         if isdead==True and i.id==0:
+            continue
+        if abs(i.x-entities[0].x)>=30 or abs(i.y-entities[0].y)>=30:
             continue
         i.draw()
     
@@ -1071,7 +1101,7 @@ def update(dt):
     if ismainmenu or ischoosing or isdead:
         return
     dct=0
-    if random()<0.125:
+    if random()<0.02:
         if random()>0.5:
             newx=int(random()*32+32)+entities[0].x
         else:
