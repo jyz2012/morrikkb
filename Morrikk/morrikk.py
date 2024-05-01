@@ -473,29 +473,36 @@ class Bird(Entity):
 noise=PerlinNoise()
 worldname='test.world'
 
-ismainmenu=True
-ischoosing=False
-iscrafting=False
-istooling=False
-toolstep=-1
-isdead=False
-curchoi=0
-curchoi2=0
-cholist=[]
-chol=[]
+def init():
+    global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
+           cholist,chol,entities,world,width,height,worlds
+    ismainmenu=True
+    ischoosing=False
+    iscrafting=False
+    istooling=False
+    toolstep=-1
+    isdead=False
+    curchoi=0
+    curchoi2=0
+    cholist=[]
+    chol=[]
+    entities=[Player()]
+    world=[]
+    width=1024
+    height=256
+    worlds=listdir('world/')
+    worlds.insert(0,' ')
+    worlds.insert(0,' ')
+    worlds.append('创建一个新世界')
+    worlds.append('删除一个世界')
+    worlds.append(' ')
+    worlds.append(' ')
 
 window=pgt.window.Window(1024,576)
 window.set_caption('Morrikk')
 keys=pgt.window.key.KeyStateHandler()
 window.push_handlers(keys)
 fps_display=pgt.window.FPSDisplay(window=window)
-worlds=listdir('world/')
-worlds.insert(0,' ')
-worlds.insert(0,' ')
-worlds.append('创建一个新世界')
-worlds.append('删除一个世界')
-worlds.append(' ')
-worlds.append(' ')
 
 mainmenuimg=pgt.image.load('imgs/mainmenu.png')
 itembg=pgt.image.load('imgs/items/itembg.png')
@@ -554,12 +561,6 @@ cancraftnum=[0,0,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
 toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
-
-entities=[Player()]
-
-world=[]
-width=1024
-height=256
 
 def worldgnr():
     global world
@@ -696,16 +697,9 @@ def on_key_press(symbol,modifiers):
                     worldgnr()
                     ischoosing=False
                     freeze(0)
-                    msgbox('世界创建成功')
                     ischoosing=True
-                    worlds=listdir('world/')
-                    worlds.insert(0,' ')
-                    worlds.insert(0,' ')
-                    worlds.append('创建一个新世界')
-                    worlds.append('删除一个世界')
-                    worlds.append(' ')
-                    worlds.append(' ')
-                    curchoi=0
+                    msgbox('世界创建成功')
+                    init()
             elif worldname=='删除一个世界':
                 worldname=enterbox('请输入被删除的世界的名字')+'.world'
                 if exists('world/'+worldname):
@@ -713,14 +707,7 @@ def on_key_press(symbol,modifiers):
                     msgbox('世界删除成功')
                 else:
                     msgbox('未找到世界：请确保世界名正确并且没有.world后缀')
-                worlds=listdir('world/')
-                worlds.insert(0,' ')
-                worlds.insert(0,' ')
-                worlds.append('创建一个新世界')
-                worlds.append('删除一个世界')
-                worlds.append(' ')
-                worlds.append(' ')
-                curchoi=0
+                init()
             else:
                 readworld()
                 ischoosing=False
@@ -1119,6 +1106,8 @@ def update(dt):
             entities[i-dct].delled()
             entities.pop(i-dct)
             dct+=1
+
+init()
 
 pgt.clock.schedule_interval(update,1/40.)
 pgt.clock.schedule_interval(freeze,10)
