@@ -114,10 +114,10 @@ class Entity():
         self.yy+=dyy
         if self.xx>=32:
             self.xx-=32
-            self.x+=1
+            self.x-=1
         elif self.xx<0:
             self.xx+=32
-            self.x-=1
+            self.x+=1
         if self.yy>=32:
             self.yy-=32
             self.y+=1
@@ -152,6 +152,21 @@ class Player(Entity):
             self.backpack.append([])
             for j in range(6):
                 self.backpack[i].append(Item(0))
+    def move(self,dxx,dyy):
+        self.xx+=dxx
+        self.yy+=dyy
+        if self.xx>=32:
+            self.xx-=32
+            self.x+=1
+        elif self.xx<0:
+            self.xx+=32
+            self.x-=1
+        if self.yy>=32:
+            self.yy-=32
+            self.y+=1
+        elif self.yy<0:
+            self.yy+=32
+            self.y-=1
     def draw(self):
         if self.isleft or self.isright:
             sprite=pgt.sprite.Sprite(x=512,y=288,
@@ -288,7 +303,7 @@ class Player(Entity):
                     self.move(0,-1)
                     self.moved+=0.5
             self.jump+=96*dt
-            if self.jump>32:
+            if self.jump>64:
                 self.jump=0
         if self.moved>=960:
             self.hungrier(1)
@@ -355,7 +370,7 @@ class Player(Entity):
                fall[world[self.x+1][self.y-(self.yy==0)].id]
     def canright(self):
         return fall[world[self.x-(self.xx==0)][self.y-1].id] and \
-               fall[world[self.x-(self.xx==0)][self.y-2].id] and \
+               fall[world[self.x-(self.xx==0)][self.y-2+(self.jump>0.95)].id] and \
                fall[world[self.x-(self.xx==0)][self.y-(self.yy==0)].id]
     def canjump(self):
         return fall[world[self.x][self.y-2-(self.yy==0)].id] and \
@@ -445,21 +460,6 @@ class Bird(Entity):
         return fall[world[self.x][self.y].id] and fall[world[self.x-1][self.y].id]
     def candown(self):
         return fall[world[self.x][self.y+1].id] and fall[world[self.x-1][self.y+1].id]
-    def move(self,dxx,dyy):
-        self.xx+=dxx
-        self.yy+=dyy
-        if self.xx>=32:
-            self.xx-=32
-            self.x-=1
-        elif self.xx<0:
-            self.xx+=32
-            self.x+=1
-        if self.yy>=32:
-            self.yy-=32
-            self.y+=1
-        elif self.yy<0:
-            self.yy+=32
-            self.y-=1
     def update(self,dt):
         if self.toward==1:
             for i in range(int(64*dt)):
@@ -510,7 +510,19 @@ class KingOTBirds(Entity):
         self.flick+=1
         self.flick%=5
     def update(self,dt):
-        pass
+        if random()<0.1:
+            tx=0
+            ty=0
+            if self.x<entities[0].x:
+                tx=-1
+            else:
+                tx=1
+            if self.y<entities[0].y:
+                ty=1
+            else:
+                ty=-1
+            print(tx,ty)
+            entities.append(Fireball(self.x,self.y,tx,ty))
     def isdel(self):
         return self.heart<=0
     def delled(self):
@@ -522,6 +534,8 @@ class AngryBird(Bird):
     def __init__(self,cx,cy):
         super().__init__(cx,cy)
         self.id=5
+        enum[self.id]+=1
+        enum[2]-=1
         self.lastdmg=0
     def update(self,dt):
         if self.x>entities[0].x+1:
@@ -537,10 +551,90 @@ class AngryBird(Bird):
             for i in range(int(64*dt)):
                 self.move(0,1)
         if self.x==entities[0].x+1 and self.y==entities[0].y-1 and \
-           time()-self.lastdmg>=(10+random()):
+           time()-self.lastdmg>=(8+random()):
             entities[0].hurt(1)
             self.lastdmg=time()
         self.move(int(random()*2),int(random()*2))
+
+class Shooted(Entity):
+    def __init__(self,cx,cy,cid):
+        super().__init__(cx,cy,0,0,cid,1,1)
+    def canleft(self):
+        return fall[world[self.x-1][self.y+1].id] and fall[world[self.x-1][self.y].id]
+    def canright(self):
+        return fall[world[self.x][self.y+1].id] and fall[world[self.x][self.y].id]
+    def canup(self):
+        return fall[world[self.x][self.y].id] and fall[world[self.x-1][self.y].id]
+    def candown(self):
+        return fall[world[self.x][self.y+1].id] and fall[world[self.x-1][self.y+1].id]
+
+class Fireball(Shooted):
+    def __init__(self,cx,cy,ctowardx,ctowardy):
+        super().__init__(cx,cy,6)
+        self.towardx=ctowardx
+        self.towardy=ctowardy
+        self.flick=0
+        self.crtd=time()
+        self.boomed=False
+        self.boomed2=False
+    def draw(self):
+        sp=pgt.sprite.Sprite(
+                    img=eimages[6][self.flick],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    )
+        self.flick+=1
+        self.flick%=5
+        if self.boomed:
+            sp2=pgt.sprite.Sprite(
+                    img=eimages[6][5],
+                    x=(entities[0].x-self.x-2)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-3)*32+288+int(entities[0].yy)-self.yy
+                    )
+            sp2.draw()
+            self.boomed2=True
+        else:
+            sp.draw()
+    def update(self,dt):
+        if self.towardx<0:
+            for i in range(int(64*abs(self.towardx)*dt)):
+                    if self.canright():
+                        self.move(-1,0)
+        else:
+            for i in range(int(64*self.towardx*dt)):
+                    if self.canleft():
+                        self.move(1,0)
+        if self.towardy<0:
+            for i in range(int(64*abs(self.towardy)*dt)):
+                    if self.canup():
+                        self.move(0,-1)
+        else:
+            for i in range(int(64*self.towardy*dt)):
+                    if self.canright():
+                        self.move(0,1)
+        for i in entities:
+            if abs(i.x-self.x)<=2 and abs(i.y-self.y)<=2 and i.id!=6 and i.id!=4 \
+               and i.id!=3 and i.id!=1:
+                self.boomed=True
+        self.boomed=self.boomed or (self.towardx>0 and not self.canleft()) or \
+               (self.towardx<0 and not self.canright()) or \
+               (self.towardy>0 and not self.candown()) or \
+               (self.towardy<0 and not self.canup())
+    def isdel(self):
+        return self.boomed2
+    def delled(self):
+        for i in entities:
+            if abs(i.x-self.x)<=2 and abs(i.y-self.y)<=2 and i.id!=4:
+                i.hurt(4)
+        for i in range(-3,3):
+            for j in range(-3,3):
+                if drop[world[self.x+i][self.y+j].id]!=0 and \
+                   diglvl[world[self.x+i][self.y+j].id]<=1 and random()<0.75:
+                    entities.append(Dropped(self.x+i,self.y+j,
+                                            drop[world[self.x+i][self.y+j].id]))
+                    world[self.x+i][self.y+j]=Block(0)
+    def getfreeze(self):
+        return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.towardx)+' '+str(self.towardy)
 
 noise=PerlinNoise()
 worldname='test.world'
@@ -561,7 +655,7 @@ def init():
     chopped=0
     needkotb=False
     enum=[]
-    for i in range(6):
+    for i in range(7):
         enum.append(0)
     entities=[Player()]
     world=[]
@@ -580,6 +674,7 @@ window.set_caption('Morrikk')
 keys=pgt.window.key.KeyStateHandler()
 window.push_handlers(keys)
 fps_display=pgt.window.FPSDisplay(window=window)
+window.set_icon(pgt.image.load('imgs/blocks/9.png'))
 
 mainmenuimg=pgt.image.load('imgs/mainmenu.png')
 itembg=pgt.image.load('imgs/items/itembg.png')
@@ -615,6 +710,9 @@ for i in range(5):
 eimages.append([])
 for i in range(5):
     eimages[5].append(pgt.image.load('imgs/entities/5/'+str(i)+'.png'))
+eimages.append([])
+for i in range(6):
+    eimages[6].append(pgt.image.load('imgs/entities/6/'+str(i)+'.png'))
 
 hconst=16
 wconst=10
@@ -749,6 +847,8 @@ def readworld():
                     entities.append(AngryBird(curs[1],curs[2]))
                     entities[len(entities)-1].heart=curs[3]
                     enum[5]+=1
+                elif curs[0]==6:
+                    entities.append(Fireball(curs[1],curs[2],curs[3],curs[4]))
             for i in range(8):
                 linee=f.readline().strip().split(' ')
                 for j in range(6):
@@ -1209,11 +1309,6 @@ def update(dt):
             enum[2]+=1
     if chopped>=100:
         print('THE KING OF THE BIRDS IS COMMING!')
-        for i in entities:
-            if i.id==2:
-                i=AngryBird(i.x,i.y)
-                enum[2]-=1
-                enum[5]+=1
         for i in range(100):
             if random()>0.5:
                 newx=int(random()*32+32)+entities[0].x
