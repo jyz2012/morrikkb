@@ -36,6 +36,14 @@ class Item():
             entities[0].hungrier(-4)
             entities[0].hurt(-4)
             self.cnt-=1
+            if self.cnt==0:
+                self.id=0
+        if self.id==31:
+            if entities[0].y>=196:
+                entities.append(SonOTRocks(entities[0].x,entities[0].y-2))
+                self.cnt-=1
+                if self.cnt==0:
+                    self.id=0
 
 class Tool():
     def __init__(self,ctid,cfirst,csecond):
@@ -98,7 +106,7 @@ class Tool():
             entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
 
 class Entity():
-    def __init__(self,cx,cy,cxx,cyy,cid,cmxhe,cmxhu):
+    def __init__(self,cx,cy,cxx,cyy,cid,cmxhe,cmxhu,cwidth,cheight):
         self.x=cx
         self.y=cy
         self.xx=cxx
@@ -108,6 +116,8 @@ class Entity():
         self.ishurten=False
         self.heart=self.mxheart=cmxhe
         self.hunger=self.mxhunger=cmxhu
+        self.width=cwidth
+        self.height=cheight
         enum[self.id]+=1
     def move(self,dxx,dyy):
         self.xx+=dxx
@@ -124,6 +134,14 @@ class Entity():
         elif self.yy<0:
             self.yy+=32
             self.y-=1
+        if self.x<2:
+            self.x+=1
+        elif self.x>1022:
+            self.x-=1
+        if self.y<2:
+            self.y+=1
+        elif self.y>254:
+            self.y-=1
     def hungrier(self,dx):
         self.hunger-=dx
         if self.hunger>self.mxhunger:
@@ -133,10 +151,21 @@ class Entity():
         self.ishurten=True
         if self.heart>self.mxheart:
             self.heart=self.mxheart
+    def dis(self,x,y):
+        res=0
+        if x<self.x:
+            res+=self.x-x
+        elif x>self.x+self.width:
+            res+=x-self.x-self.width
+        if y<self.y-self.height:
+            res+=self.y-self.height-y
+        elif y>self.y:
+            res+=y-self.y
+        return res
 
 class Player(Entity):
     def __init__(self):
-        super().__init__(512,110,0,0,0,20,20)
+        super().__init__(512,110,0,0,0,20,20,1,2)
         self.isleft=False
         self.isright=False
         self.backpack=[]
@@ -278,7 +307,7 @@ class Player(Entity):
         ibatch.draw()
     def update(self,dt):
         global isdead
-        if self.falling() and self.jump<0.95:
+        if self.falling() and self.jump<0.95 and self.y<240:
             for i in range(int(64*dt)):
                 if self.falling() and self.jump<0.95:
                     self.move(0,1)
@@ -287,19 +316,19 @@ class Player(Entity):
             if self.fallen>=128:
                 self.hurt(self.fallen//32)
             self.fallen=0
-        if self.isleft and self.canleft():
+        if self.isleft and self.canleft() and self.x<1000:
             for i in range(int(64*dt)):
                 if self.isleft and self.canleft():
                     self.move(1,0)
                     self.moved+=1
-        if self.isright and self.canright():
+        if self.isright and self.canright() and self.x>20:
             for i in range(int(64*dt)):
                 if self.isright and self.canright():
                     self.move(-1,0)
                     self.moved+=1
         if self.jump>0.95:
             for i in range(int(64*dt)):
-                if self.canjump():
+                if self.canjump() and self.y>20:
                     self.move(0,-1)
                     self.moved+=0.5
             self.jump+=96*dt
@@ -366,7 +395,7 @@ class Player(Entity):
         pass
     def canleft(self):
         return fall[world[self.x+1][self.y-1].id] and \
-               fall[world[self.x+1][self.y-2].id] and \
+               fall[world[self.x+1][self.y-2+(self.jump>0.95)].id] and \
                fall[world[self.x+1][self.y-(self.yy==0)].id]
     def canright(self):
         return fall[world[self.x-(self.xx==0)][self.y-1].id] and \
@@ -381,7 +410,7 @@ class Player(Entity):
     
 class Dropped(Entity):
     def __init__(self,cx,cy,ciid):
-        super().__init__(cx,cy,0,0,1,0,0)
+        super().__init__(cx,cy,0,0,1,0,0,1,1)
         self.iid=ciid
         self.crtime=time()
     def draw(self):
@@ -397,7 +426,8 @@ class Dropped(Entity):
         if self.falling():
             self.move(0,64*dt)
     def isdel(self):
-        return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<=2 and abs(entities[0].y-self.y)<=2 and entities[0].badd(self.iid,1)
+        return ((time()-self.crtime)>=2 and entities[0].dis(self.x,self.y)<=2 and entities[0].badd(self.iid,1)) or\
+               time()-self.crtime>=120
     def delled(self):
         return
     def getfreeze(self):
@@ -432,7 +462,7 @@ class DroppedTool(Dropped):
 
 class Bird(Entity):
     def __init__(self,cx,cy):
-        super().__init__(cx,cy,0,0,2,10,10)
+        super().__init__(cx,cy,0,0,2,10,10,1,1)
         self.flick=0
         self.toward=int(random()*5-0.03)
         self.dtsum=0
@@ -483,7 +513,7 @@ class Bird(Entity):
         if self.dtsum>=8:
             self.dtsum=0
     def isdel(self):
-        return (abs(self.x-entities[0].x)>=128 or abs(self.y-entities[0].y)>=128) or self.heart<=0
+        return entities[0].dis(self.x,self.y)>=128 or self.heart<=0
     def delled(self):
         enum[self.id]-=1
     def getfreeze(self):
@@ -491,7 +521,7 @@ class Bird(Entity):
 
 class KingOTBirds(Entity):
     def __init__(self,cx,cy):
-        super().__init__(cx,cy,0,0,4,250,20)
+        super().__init__(cx,cy,0,0,4,250,20,1,1)
         self.flick=0
     def draw(self):
         sp=pgt.sprite.Sprite(
@@ -521,12 +551,28 @@ class KingOTBirds(Entity):
                 ty=1
             else:
                 ty=-1
-            print(tx,ty)
             entities.append(Fireball(self.x,self.y,tx,ty))
+        if abs(self.x-entities[0].x)>=10:
+            if self.x<entities[0].x:
+                for i in range(int(64*dt)):
+                    if self.canright():
+                        self.move(-1,0)
+            else:
+                for i in range(int(64*dt)):
+                    if self.canleft():
+                        self.move(1,0)
+    def canleft(self):
+        return fall[world[self.x-1][self.y+1].id] and fall[world[self.x-1][self.y].id]
+    def canright(self):
+        return fall[world[self.x][self.y+1].id] and fall[world[self.x][self.y].id]
+    def canup(self):
+        return fall[world[self.x][self.y].id] and fall[world[self.x-1][self.y].id]
+    def candown(self):
+        return fall[world[self.x][self.y+1].id] and fall[world[self.x-1][self.y+1].id]
     def isdel(self):
         return self.heart<=0
     def delled(self):
-        print('YOU HAVE KILLED THE KING OF THE BIRDS.')
+        return
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
@@ -550,7 +596,7 @@ class AngryBird(Bird):
         elif self.y<entities[0].y-1:
             for i in range(int(64*dt)):
                 self.move(0,1)
-        if self.x==entities[0].x+1 and self.y==entities[0].y-1 and \
+        if entities[0].dis(self.x,self.y)<=1 and \
            time()-self.lastdmg>=(8+random()):
             entities[0].hurt(1)
             self.lastdmg=time()
@@ -558,7 +604,7 @@ class AngryBird(Bird):
 
 class Shooted(Entity):
     def __init__(self,cx,cy,cid):
-        super().__init__(cx,cy,0,0,cid,1,1)
+        super().__init__(cx,cy,0,0,cid,1,1,1,1)
     def canleft(self):
         return fall[world[self.x-1][self.y+1].id] and fall[world[self.x-1][self.y].id]
     def canright(self):
@@ -613,8 +659,8 @@ class Fireball(Shooted):
                     if self.canright():
                         self.move(0,1)
         for i in entities:
-            if abs(i.x-self.x)<=2 and abs(i.y-self.y)<=2 and i.id!=6 and i.id!=4 \
-               and i.id!=3 and i.id!=1:
+            if i.dis(self.x,self.y)<=3 and i.id!=6 and i.id!=4 \
+               and i.id!=3 and i.id!=1 and i.id!=7:
                 self.boomed=True
         self.boomed=self.boomed or (self.towardx>0 and not self.canleft()) or \
                (self.towardx<0 and not self.canright()) or \
@@ -624,7 +670,7 @@ class Fireball(Shooted):
         return self.boomed2
     def delled(self):
         for i in entities:
-            if abs(i.x-self.x)<=2 and abs(i.y-self.y)<=2 and i.id!=4:
+            if i.dis(self.x,self.y)<=3 and i.id!=4 and i.id!=7:
                 i.hurt(4)
         for i in range(-3,3):
             for j in range(-3,3):
@@ -635,6 +681,83 @@ class Fireball(Shooted):
                     world[self.x+i][self.y+j]=Block(0)
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.towardx)+' '+str(self.towardy)
+
+class SonOTRocks(Entity):
+    def __init__(self,cx,cy):
+        super().__init__(cx,cy,0,0,7,180,1,2,2)
+        self.toward=0
+        self.lastupd=0
+        self.attked=False
+    def draw(self):
+        sp=pgt.sprite.Sprite(
+                    img=eimages[7][0],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    )
+        sp.draw()
+        if self.ishurten:
+            redr=pgt.shapes.Rectangle(x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                                      y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                                      width=32,height=32,
+                                      color=(255,0,0,128))
+            redr.draw()
+            self.ishurten=False
+    def update(self,dt):
+        if time()-self.lastupd>=1:
+            if time()-self.lastupd>=1.5:
+                self.lastupd=time()
+                self.toward=0
+                if self.x>entities[0].x:
+                    self.toward+=1
+                if self.y<entities[0].y:
+                    self.toward+=2
+                self.attked=False
+            else:
+                if random()<0.125:
+                    tx=0
+                    ty=0
+                    if self.x<entities[0].x:
+                        tx=-1
+                    else:
+                        tx=1
+                    if self.y<entities[0].y:
+                        ty=1
+                    else:
+                        ty=-1
+                    entities.append(Fireball(self.x,self.y,tx,ty))
+        if self.toward%2==0:
+            for i in range(int(64*dt)):
+                self.move(-1,0)
+        else:
+            for i in range(int(64*dt)):
+                self.move(1,0)
+        if self.toward/2>0.75:
+            for i in range(int(64*dt)):
+                self.move(0,1)
+        else:
+            for i in range(int(64*dt)):
+                self.move(0,-1)
+        if entities[0].dis(self.x,self.y)<=1 and not self.attked:
+            entities[0].hurt(3)
+            self.attked=True
+    def canleft(self):
+        return (fall[world[self.x-1][self.y+1].id] or world[self.x-1][self.y+1].id==2) and \
+               (fall[world[self.x-1][self.y].id] or world[self.x-1][self.y].id==2)
+    def canright(self):
+        return (fall[world[self.x][self.y+1].id] or world[self.x][self.y+1].id==2) and \
+               (fall[world[self.x][self.y].id] or world[self.x][self.y].id==2)
+    def canup(self):
+        return (fall[world[self.x][self.y].id] or world[self.x][self.y].id==2) and \
+               (fall[world[self.x-1][self.y].id] or world[self.x-1][self.y].id==2)
+    def candown(self):
+        return (fall[world[self.x][self.y+1].id] or world[self.x][self.y+1].id==2) and \
+               (fall[world[self.x-1][self.y+1].id] or world[self.x-1][self.y+1].id==2)
+    def isdel(self):
+        return self.heart<=0
+    def delled(self):
+        return
+    def getfreeze(self):
+        return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
 noise=PerlinNoise()
 worldname='test.world'
@@ -655,7 +778,7 @@ def init():
     chopped=0
     needkotb=False
     enum=[]
-    for i in range(7):
+    for i in range(8):
         enum.append(0)
     entities=[Player()]
     world=[]
@@ -691,7 +814,7 @@ timages=[]
 eimages=[]
 for i in range(15):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(31):
+for i in range(32):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -713,6 +836,9 @@ for i in range(5):
 eimages.append([])
 for i in range(6):
     eimages[6].append(pgt.image.load('imgs/entities/6/'+str(i)+'.png'))
+eimages.append([])
+for i in range(1):
+    eimages[7].append(pgt.image.load('imgs/entities/7/'+str(i)+'.png'))
 
 hconst=16
 wconst=10
@@ -721,7 +847,7 @@ fall=[True,False,False,False,True,True,False,False,False,
       True,False,True,True,False,False]
 drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27]
 put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0,11,
-     0,0,0,0,0,0,0,0,0]
+     0,0,0,0,0,0,0,0,0,0]
 diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3]
 digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
@@ -729,18 +855,18 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
        '棉花','线','锄头模板','木锄头头','石锄头头','铁锄头头',
        '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头',
-       '石握柄']
+       '石握柄','岩石之心']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
            16:((8,1),(5,1)),19:((18,1),),20:((7,1),),21:((20,1),(3,1)),
            22:((20,1),(2,1)),23:((20,1),(5,1)),25:((8,1),(24,1)),
            26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1)),
-           30:((14,1),(2,1))}
+           30:((14,1),(2,1)),31:((2,512),)}
 cancraft=[0,0,2,7,19,6,13,8,9,10,16,25,28,20,21,22,23,
-          26,29,14,15,30,0,0]
+          26,29,14,15,30,31,0,0]
 cancraftnum=[0,0,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,0,0]
+             1,1,1,1,1,1,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
 toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
@@ -842,13 +968,14 @@ def readworld():
                 elif curs[0]==4:
                     entities.append(KingOTBirds(curs[1],curs[2]))
                     entities[len(entities)-1].heart=curs[3]
-                    enum[4]+=1
                 elif curs[0]==5:
                     entities.append(AngryBird(curs[1],curs[2]))
                     entities[len(entities)-1].heart=curs[3]
-                    enum[5]+=1
                 elif curs[0]==6:
                     entities.append(Fireball(curs[1],curs[2],curs[3],curs[4]))
+                elif curs[0]==7:
+                    entities.append(SonOTRocks(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
             for i in range(8):
                 linee=f.readline().strip().split(' ')
                 for j in range(6):
@@ -1031,10 +1158,10 @@ def on_key_press(symbol,modifiers):
                 cholist.append(0)
                 cholist.append(0)
         else:
-            if time()-entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg>=2:
+            if time()-entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg>=0.5:
                 entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg=time()
                 for i in range(1,len(entities)):
-                    if abs(entities[i].x-entities[0].x)+abs(entities[i].y-entities[0].y)<=4 and \
+                    if entities[i].dis(entities[0].x,entities[0].y)<=3 and \
                        ((entities[i].x>=entities[0].x and entities[0].lastleft) or \
                         (entities[i].x<=entities[0].x and not entities[0].lastleft)):
                         if entities[0].backpack[entities[0].chosi][entities[0].chosj].id!=12:
@@ -1101,7 +1228,7 @@ def on_mouse_press(x,y,button,modifiers):
     curx=hconst-int((x-entities[0].xx)/32)+entities[0].x
     cury=wconst-int((y-entities[0].yy)/32)+entities[0].y-edgconst-1
     if button==pgt.window.mouse.LEFT and \
-       abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4 and \
+       entities[0].dis(curx,cury)<=3 and \
        entities[0].backpack[entities[0].chosi][entities[0].chosj].diglvl>=diglvl[world[curx][cury].id] and \
        (digtype[world[curx][cury].id]==0 or entities[0].backpack[entities[0].chosi][entities[0].chosj].tid==digtype[world[curx][cury].id]):
         if drop[world[curx][cury].id]!=0:
@@ -1112,7 +1239,7 @@ def on_mouse_press(x,y,button,modifiers):
         if world[curx][cury].id==3:
             chopped+=1
         world[curx][cury]=Block(0)
-    if button==pgt.window.mouse.RIGHT and abs(curx-entities[0].x)+abs(cury-entities[0].y)<=4:
+    if button==pgt.window.mouse.RIGHT and entities[0].dis(curx,cury)<=3:
         if world[curx][cury].id==0:
             entities[0].bput(curx,cury)
             entities[0].moved+=1
@@ -1303,10 +1430,11 @@ def update(dt):
             newy=int(random()*32+32)+entities[0].y-10
         else:
             newy=int(random()*32+32)*-1+entities[0].y-10
-        if fall[world[newx][newy].id] and \
-           newy<int(noise(newx/32)*28)+114 and enum[2]<=200:
-            entities.append(Bird(newx,newy))
-            enum[2]+=1
+        if newx>0 and newx<1024 and newy>0 and newy<256:
+            if fall[world[newx][newy].id] and \
+               newy<int(noise(newx/32)*28)+114 and enum[2]<100:
+                entities.append(Bird(newx,newy))
+                enum[2]+=1
     if chopped>=100:
         print('THE KING OF THE BIRDS IS COMMING!')
         for i in range(100):
@@ -1328,11 +1456,13 @@ def update(dt):
         entities.append(KingOTBirds(entities[0].x-2,entities[0].y-2))
         needkotb=False
     for i in range(len(entities)):
-        entities[i-dct].update(dt)
-        if entities[i-dct].isdel():
-            entities[i-dct].delled()
-            entities.pop(i-dct)
-            dct+=1
+        if abs(entities[0].x-entities[i-dct].x)<=64 and \
+           abs(entities[0].y-entities[i-dct].y)<=64:
+            entities[i-dct].update(dt)
+            if entities[i-dct].isdel():
+                entities[i-dct].delled()
+                entities.pop(i-dct)
+                dct+=1
 
 init()
 
