@@ -196,13 +196,15 @@ class Player(Entity):
         elif self.yy<0:
             self.yy+=32
             self.y-=1
-    def draw(self):
+    def draw(self,batch):
         if self.isleft or self.isright:
             sprite=pgt.sprite.Sprite(x=512,y=288,
-                                   img=eimages[0][self.lastleft][self.flick%4])
+                                   img=eimages[0][self.lastleft][self.flick%4],
+                                     batch=batch)
         else:
             sprite=pgt.sprite.Sprite(x=512,y=288,
-                                   img=eimages[0][self.lastleft][0])
+                                   img=eimages[0][self.lastleft][0],
+                                     batch=batch)
 
         sprite.draw()
         self.flick+=1
@@ -334,6 +336,16 @@ class Player(Entity):
             self.jump+=96*dt
             if self.jump>64:
                 self.jump=0
+        if world[self.x][self.y+1].id==17:
+            world[self.x][self.y+1]=Block(0)
+            entities.append(QueenOTClouds(self.x,self.y-2))
+        if world[self.x+1-(self.xx==0)][self.y+1].id==17:
+            world[self.x+1-(self.xx==0)][self.y+1]=Block(0)
+            entities.append(QueenOTClouds(self.x,self.y-2))
+        if world[self.x][self.y+1].id==18:
+            world[self.x][self.y+1]=Block(0)
+        if world[self.x+1-(self.xx==0)][self.y+1].id==18:
+            world[self.x+1-(self.xx==0)][self.y+1]=Block(0)
         if self.moved>=960:
             self.hungrier(1)
             self.moved=0
@@ -413,12 +425,12 @@ class Dropped(Entity):
         super().__init__(cx,cy,0,0,1,0,0,1,1)
         self.iid=ciid
         self.crtime=time()
-    def draw(self):
+    def draw(self,batch):
         sp=pgt.sprite.Sprite(
                     img=iimages[self.iid],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
-                    )
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch)
         sp.draw()
     def falling(self):
         return fall[world[self.x][self.y+1].id]
@@ -444,16 +456,18 @@ class DroppedTool(Dropped):
         self.damage=cdamage
     def isdel(self):
         return (time()-self.crtime)>=2 and abs(entities[0].x-self.x)<=2 and abs(entities[0].y-self.y)<=2 and entities[0].baddt2(self.tid,self.first,self.second,self.canuse,self.damage)
-    def draw(self):
+    def draw(self,batch):
         sp=pgt.sprite.Sprite(
                     img=iimages[self.first],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
                     )
         sp2=pgt.sprite.Sprite(
                     img=iimages[self.second],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
                     )
         sp.draw()
         sp2.draw()
@@ -466,11 +480,12 @@ class Bird(Entity):
         self.flick=0
         self.toward=int(random()*5-0.03)
         self.dtsum=0
-    def draw(self):
+    def draw(self,batch):
         sp=pgt.sprite.Sprite(
                     img=eimages[self.id][self.flick],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
                     )
         sp.draw()
         if self.ishurten:
@@ -523,11 +538,12 @@ class KingOTBirds(Entity):
     def __init__(self,cx,cy):
         super().__init__(cx,cy,0,0,4,250,20,1,1)
         self.flick=0
-    def draw(self):
+    def draw(self,batch):
         sp=pgt.sprite.Sprite(
                     img=eimages[4][self.flick],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
                     )
         sp.draw()
         if self.ishurten:
@@ -623,11 +639,12 @@ class Fireball(Shooted):
         self.crtd=time()
         self.boomed=False
         self.boomed2=False
-    def draw(self):
+    def draw(self,batch):
         sp=pgt.sprite.Sprite(
                     img=eimages[6][self.flick],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
                     )
         self.flick+=1
         self.flick%=5
@@ -635,7 +652,8 @@ class Fireball(Shooted):
             sp2=pgt.sprite.Sprite(
                     img=eimages[6][5],
                     x=(entities[0].x-self.x-2)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-3)*32+288+int(entities[0].yy)-self.yy
+                    y=(entities[0].y-self.y-3)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
                     )
             sp2.draw()
             self.boomed2=True
@@ -688,11 +706,12 @@ class SonOTRocks(Entity):
         self.toward=0
         self.lastupd=0
         self.attked=False
-    def draw(self):
+    def draw(self,batch):
         sp=pgt.sprite.Sprite(
                     img=eimages[7][0],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
-                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
                     )
         sp.draw()
         if self.ishurten:
@@ -759,6 +778,53 @@ class SonOTRocks(Entity):
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
+class QueenOTClouds(Entity):
+    def __init__(self,cx,cy):
+        super().__init__(cx,cy,0,0,8,200,10,2,1)
+        self.hurttime=0
+    def draw(self,batch):
+        sp=pgt.sprite.Sprite(
+                    img=eimages[8][0],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
+                    )
+        sp.draw()
+        if self.ishurten:
+            redr=pgt.shapes.Rectangle(x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                                      y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                                      width=64,height=32,
+                                      color=(255,0,0,128))
+            redr.draw()
+            self.ishurten=False
+        if entities[0].dis(self.x,self.y)<=0:
+            sp2=pgt.sprite.Sprite(
+                img=eimages[8][1],
+                x=0,
+                y=0,
+                batch=batch)
+            sp2.draw()
+    def update(self,dt):
+        if not entities[0].dis(self.x,self.y)<=0:
+            if self.x>entities[0].x:
+                self.move(int(dt*48),0)
+            elif self.x<entities[0].x:
+                self.move(0-int(dt*48),0)
+            if self.y<entities[0].y-1:
+                self.move(0,int(dt*48))
+            elif self.y>=entities[0].y:
+                self.move(0,0-int(dt*48))
+        else:
+            if time()-self.hurttime>=0.5:
+                entities[0].hurt(1)
+                self.hurttime=time()
+    def isdel(self):
+        return self.heart<=0
+    def delled(self):
+        return
+    def getfreeze(self):
+        return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
+
 noise=PerlinNoise()
 worldname='test.world'
 
@@ -778,7 +844,7 @@ def init():
     chopped=0
     needkotb=False
     enum=[]
-    for i in range(8):
+    for i in range(9):
         enum.append(0)
     entities=[Player()]
     world=[]
@@ -812,9 +878,9 @@ images=[]
 iimages=[]
 timages=[]
 eimages=[]
-for i in range(15):
+for i in range(19):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(32):
+for i in range(34):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -839,34 +905,37 @@ for i in range(6):
 eimages.append([])
 for i in range(1):
     eimages[7].append(pgt.image.load('imgs/entities/7/'+str(i)+'.png'))
+eimages.append([])
+for i in range(2):
+    eimages[8].append(pgt.image.load('imgs/entities/8/'+str(i)+'.png'))
 
 hconst=16
 wconst=10
 edgconst=1
 fall=[True,False,False,False,True,True,False,False,False,
-      True,False,True,True,False,False]
-drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27]
+      True,False,True,True,False,False,True,False,False,False]
+drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0]
 put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0,11,
-     0,0,0,0,0,0,0,0,0,0]
-diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3]
-digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1]
+     0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16]
+diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000]
+digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
        '棉花','线','锄头模板','木锄头头','石锄头头','铁锄头头',
        '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头',
-       '石握柄','岩石之心']
+       '石握柄','岩石之心','松散的云','云']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
            16:((8,1),(5,1)),19:((18,1),),20:((7,1),),21:((20,1),(3,1)),
            22:((20,1),(2,1)),23:((20,1),(5,1)),25:((8,1),(24,1)),
            26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1)),
-           30:((14,1),(2,1)),31:((2,512),)}
+           30:((14,1),(2,1)),31:((2,512),),33:((32,8),),32:((33,1),)}
 cancraft=[0,0,2,7,19,6,13,8,9,10,16,25,28,20,21,22,23,
-          26,29,14,15,30,31,0,0]
+          26,29,14,15,30,31,33,32,0,0]
 cancraftnum=[0,0,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,1,0,0]
+             1,1,1,1,1,1,1,8,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
 toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
@@ -879,7 +948,16 @@ def worldgnr():
         dheight=int(noise(i/32)*28)+114
         dwidth=randint(3,6)
         for j in range(dheight):
-            world[i].append(Block(0))
+            if j>50 and j<60:
+                iscloud=noise([i/18,j/5])
+                if iscloud>0.05 and iscloud<0.15:
+                    world[i].append(Block(15))
+                elif iscloud>0.2:
+                    world[i].append(Block(16))
+                else:
+                    world[i].append(Block(0))
+            else:
+                world[i].append(Block(0))
         for j in range(dheight,dheight+dwidth):
             world[i].append(Block(1))
         for j in range(dheight+dwidth,height):
@@ -911,6 +989,15 @@ def worldgnr():
                 if random()>0.2:
                     world[i-2][j]=Block(4)
             world[i-1][exdheight-trheight-1]=Block(4)
+    if random()>0.5:
+        world[256][50]=Block(17)
+        world[768][50]=Block(18)
+    else:
+        world[256][50]=Block(18)
+        world[768][50]=Block(17)
+    for i in range(-1,2):
+        world[256+i][51]=Block(16)
+        world[768+i][51]=Block(16)
 
 def freeze(dt):
     if ismainmenu or ischoosing:
@@ -976,6 +1063,9 @@ def readworld():
                 elif curs[0]==7:
                     entities.append(SonOTRocks(curs[1],curs[2]))
                     entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==8:
+                    entities.append(QueenOTClouds(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
             for i in range(8):
                 linee=f.readline().strip().split(' ')
                 for j in range(6):
@@ -1000,7 +1090,7 @@ def readworld():
 def on_key_press(symbol,modifiers):
     global iscrafting,curchoi,ismainmenu,ischoosing,worldname,worlds,isdead
     global istooling,toolstep,cholist,curchoi2,chol
-    if ischoosing:
+    if ischoosing and not ismainmenu:
         if symbol==pgt.window.key.PAGEDOWN:
             if curchoi>0:
                 curchoi-=1
@@ -1118,7 +1208,7 @@ def on_key_press(symbol,modifiers):
                     entities[0].bdel(cancraft[curchoi+2],cancraftnum[curchoi+2])
                     break
                 cnt+=1
-        if istooling==True:
+        elif istooling==True:
             cholist=[0,0]
             chol=[]
             flag=False
@@ -1158,7 +1248,7 @@ def on_key_press(symbol,modifiers):
                 cholist.append(0)
                 cholist.append(0)
         else:
-            if time()-entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg>=0.5:
+            if time()-entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg>=1:
                 entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg=time()
                 for i in range(1,len(entities)):
                     if entities[i].dis(entities[0].x,entities[0].y)<=3 and \
@@ -1308,13 +1398,14 @@ def on_draw():
                 y=576-(j*32)+int(entities[0].yy),
                 batch=blbatch))
     blbatch.draw()
-    
+
+    ebatch=pgt.graphics.Batch()
     for i in entities:
         if isdead==True and i.id==0:
             continue
         if abs(i.x-entities[0].x)>=30 or abs(i.y-entities[0].y)>=30:
             continue
-        i.draw()
+        i.draw(ebatch)
     
     entities[0].drawbp()
     
