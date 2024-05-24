@@ -37,6 +37,54 @@ class Block():
             self.light=max(self.light,world[x][y+1].light-1)
         if canlit[world[x][y-1].id] or world[x+1][y].clight>0:
             self.light=max(self.light,world[x][y-1].light-1)
+        if self.id==28:
+            if random()<0.002:
+                self.id=12
+        elif self.id==29:
+            if random()<0.001:
+                trheight=randint(4,6)
+                world[x][y]=Block(3,x,y)
+                if world[x][y-1].id==0:
+                    world[x][y-1]=Block(3,x,y-1)
+                for j in range(y-2,y-trheight-1,-1):
+                    if world[x][j].id==0:
+                        world[x][j]=Block(3,x,j)
+                    if random()>0.2 and world[x+1][j].id==0:
+                        world[x+1][j]=Block(4,x+1,j)
+                    if random()>0.2 and world[x-1][j].id==0:
+                        world[x-1][j]=Block(4,x-1,j)
+                if world[x-1][y-trheight-1].id==0:
+                    world[x-1][y-trheight-1]=Block(4,x-1,y-trheight-1)
+        elif self.id==30:
+            if random()<0.001:
+                trheight=randint(4,6)
+                world[x][y]=Block(23,x,y)
+                if world[x][y-1].id==0:
+                    world[x][y-1]=Block(23,x,y-1)
+                for j in range(y-2,y-trheight-1,-1):
+                    if world[x][j].id==0:
+                        world[x][j]=Block(23,x,j)
+                    if random()>0.2 and world[x+1][j].id==0:
+                        world[x+1][j]=Block(24,x+1,j)
+                    if random()>0.2 and world[x-1][j].id==0:
+                        world[x-1][j]=Block(24,x-1,j)
+                if world[x-1][y-trheight-1].id==0:
+                    world[x-1][y-trheight-1]=Block(24,x-1,y-trheight-1)
+        elif self.id==33:
+            if random()<0.001:
+                trheight=randint(5,9)
+                if world[x][y-1].id==0:
+                    world[x][y-1]=Block(3,x,y-1)
+                world[x][y]=Block(3,x,y-1)
+                for j in range(y-2,y-trheight-1,-1):
+                    if world[x][j].id==0:
+                        world[x][j]=Block(32,x,j)
+                    if random()>0.2 and world[x+1][j].id==0:
+                        world[x+1][j]=Block(31,x+1,j)
+                    if random()>0.2 and world[x-1][j].id==0:
+                        world[x-1][j]=Block(31,x-1,j)
+                if world[x][y-trheight-1].id==0:
+                    world[x][y-trheight-1]=Block(31,x,y-trheight-1)
 
 class Item():
     def __init__(self,cid):
@@ -46,23 +94,30 @@ class Item():
         self.tid=0
         self.lastdmg=0
     def use(self):
+        global respawnx,respawny
         if self.id==3:
             if entities[0].badd(6,1):
                 self.cnt-=1
                 if self.cnt==0:
                     self.id=0
-        if self.id==4:
+        elif self.id==4:
             entities[0].hungrier(-4)
             entities[0].hurt(-4)
             self.cnt-=1
             if self.cnt==0:
                 self.id=0
-        if self.id==31:
+        elif self.id==31:
             if entities[0].y>=196:
                 entities.append(SonOTRocks(entities[0].x,entities[0].y-2))
                 self.cnt-=1
                 if self.cnt==0:
                     self.id=0
+        elif self.id==42:
+            respawnx=entities[0].x
+            respawny=entities[0].y
+            self.cnt-=1
+            if self.cnt==0:
+                self.id=0
 
 class Tool():
     def __init__(self,ctid,cfirst,csecond):
@@ -187,6 +242,7 @@ class Player(Entity):
         super().__init__(512,110,0,0,0,20,20,1,2)
         self.isleft=False
         self.isright=False
+        self.isclimbing=False
         self.backpack=[]
         self.chosi=0
         self.chosj=0
@@ -218,7 +274,11 @@ class Player(Entity):
     def draw(self,batch):
         if self.isleft or self.isright:
             sprite=pgt.sprite.Sprite(x=512,y=288,
-                                   img=eimages[0][self.lastleft][self.flick%4],
+                                   img=eimages[0][self.lastleft][int(self.flick)%4],
+                                     batch=batch)
+        elif self.isclimbing:
+            sprite=pgt.sprite.Sprite(x=512,y=288,
+                                   img=eimages[0][2][0],
                                      batch=batch)
         else:
             sprite=pgt.sprite.Sprite(x=512,y=288,
@@ -226,7 +286,6 @@ class Player(Entity):
                                      batch=batch)
 
         sprite.draw()
-        self.flick+=1
         if self.ishurten:
             redr=pgt.shapes.Rectangle(x=512,
                                       y=288,
@@ -328,23 +387,29 @@ class Player(Entity):
         ibatch.draw()
     def update(self,dt):
         global isdead
-        if self.falling() and self.jump<0.95 and self.y<240:
+        if self.falling() and self.jump<0.95 and self.y<240 and \
+           not (self.isclimbing and self.canclimb()):
             for i in range(int(64*dt)):
-                if self.falling() and self.jump<0.95:
+                if self.falling() and self.jump<0.95 and self.y<240:
                     self.move(0,1)
                     self.fallen+=1
-        if not self.falling():
-            if self.fallen>=128:
+        if not self.falling() or (self.isclimbing and self.canclimb()):
+            if self.fallen>=128 and not (self.isclimbing and self.canclimb()):
                 self.hurt(self.fallen//32)
             self.fallen=0
-        if self.isleft and self.canleft() and self.x<1000:
+        if self.isclimbing:
+            for i in range(int(48*dt)):
+                if self.canclimb() and self.y>20:
+                    self.move(0,-1)
+                    self.moved+=1
+        if self.isleft and self.canleft():
             for i in range(int(64*dt)):
-                if self.isleft and self.canleft():
+                if self.x<1000 and self.canleft():
                     self.move(1,0)
                     self.moved+=1
-        if self.isright and self.canright() and self.x>20:
+        if self.isright and self.canright():
             for i in range(int(64*dt)):
-                if self.isright and self.canright():
+                if self.x>20 and self.canright():
                     self.move(-1,0)
                     self.moved+=1
         if self.jump>0.95:
@@ -373,6 +438,7 @@ class Player(Entity):
             self.moved=0
         if self.heart<=0:
             isdead=True
+        self.flick+=dt*12
     def badd(self,iid,num):
         for i in range(8):
             for j in range(6):
@@ -438,6 +504,14 @@ class Player(Entity):
     def falling(self):
         return fall[world[self.x][self.y].id] and \
                fall[world[self.x+1-(self.xx==0)][self.y].id]
+    def canclimb(self):
+        return (climb[world[self.x+1][self.y-1].id] or \
+               climb[world[self.x+1][self.y-2].id] or \
+               climb[world[self.x+1][self.y-(self.yy==0)].id] or \
+               climb[world[self.x][self.y-1].id] or \
+               climb[world[self.x][self.y-2].id] or \
+               climb[world[self.x][self.y-(self.yy==0)].id]) and \
+               self.canjump()
     
 class Dropped(Entity):
     def __init__(self,cx,cy,ciid):
@@ -501,7 +575,7 @@ class Bird(Entity):
         self.dtsum=0
     def draw(self,batch):
         sp=pgt.sprite.Sprite(
-                    img=eimages[self.id][self.flick],
+                    img=eimages[self.id][int(self.flick)%5],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
                     y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
                     batch=batch
@@ -514,8 +588,6 @@ class Bird(Entity):
                                       color=(255,0,0,128))
             redr.draw()
             self.ishurten=False
-        self.flick+=1
-        self.flick%=5
     def canleft(self):
         return fall[world[self.x-1][self.y+1].id] and fall[world[self.x-1][self.y].id]
     def canright(self):
@@ -546,6 +618,7 @@ class Bird(Entity):
             self.toward=int(random()*5-0.03)
         if self.dtsum>=8:
             self.dtsum=0
+        self.flick+=dt*12
     def isdel(self):
         return entities[0].dis(self.x,self.y)>=128 or self.heart<=0
     def delled(self):
@@ -559,7 +632,7 @@ class KingOTBirds(Entity):
         self.flick=0
     def draw(self,batch):
         sp=pgt.sprite.Sprite(
-                    img=eimages[4][self.flick],
+                    img=eimages[4][int(self.flick)%5],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
                     y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
                     batch=batch
@@ -572,8 +645,6 @@ class KingOTBirds(Entity):
                                       color=(255,0,0,128))
             redr.draw()
             self.ishurten=False
-        self.flick+=1
-        self.flick%=5
     def update(self,dt):
         if random()<0.1:
             tx=0
@@ -596,6 +667,7 @@ class KingOTBirds(Entity):
                 for i in range(int(64*dt)):
                     if self.canleft():
                         self.move(1,0)
+        self.flick+=dt*12
     def canleft(self):
         return fall[world[self.x-1][self.y+1].id] and fall[world[self.x-1][self.y].id]
     def canright(self):
@@ -660,13 +732,11 @@ class Fireball(Shooted):
         self.boomed2=False
     def draw(self,batch):
         sp=pgt.sprite.Sprite(
-                    img=eimages[6][self.flick],
+                    img=eimages[6][int(self.flick)],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
                     y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
                     batch=batch
                     )
-        self.flick+=1
-        self.flick%=5
         if self.boomed:
             sp2=pgt.sprite.Sprite(
                     img=eimages[6][5],
@@ -703,6 +773,7 @@ class Fireball(Shooted):
                (self.towardx<0 and not self.canright()) or \
                (self.towardy>0 and not self.candown()) or \
                (self.towardy<0 and not self.canup())
+        self.flick+=dt*12
     def isdel(self):
         return self.boomed2
     def delled(self):
@@ -850,7 +921,7 @@ worldname='test.world'
 def init():
     global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
            cholist,chol,entities,enum,world,width,height,worlds,chopped,needkotb,\
-           dheights
+           dheights,biomes,respawnx,respawny
     ismainmenu=True
     ischoosing=False
     iscrafting=False
@@ -862,6 +933,8 @@ def init():
     cholist=[]
     chol=[]
     chopped=0
+    respawnx=512
+    respawny=110
     needkotb=False
     enum=[]
     for i in range(9):
@@ -869,6 +942,7 @@ def init():
     entities=[Player()]
     world=[]
     dheights=[]
+    biomes=[]
     width=1024
     height=256
     worlds=listdir('world/')
@@ -900,16 +974,17 @@ iimages=[]
 timages=[]
 eimages=[]
 limages=[]
-for i in range(20):
+for i in range(39):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(36):
+for i in range(48):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
-eimages.append([[],[]])
+eimages.append([[],[],[]])
 for i in range(5):
     eimages[0][0].append(pgt.image.load('imgs/entities/0/right/'+str(i)+'.png'))
     eimages[0][1].append(pgt.image.load('imgs/entities/0/left/'+str(i)+'.png'))
+eimages[0][2].append(pgt.image.load('imgs/entities/0/climb/0.png'))
 eimages.append([])
 eimages.append([])
 for i in range(5):
@@ -936,24 +1011,38 @@ for i in range(9):
 hconst=16
 wconst=10
 edgconst=1
-fall=[True,False,False,False,True,True,False,False,False,
-      True,False,True,True,False,False,True,False,False,False,
-      True]
-drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34]
-light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8]
+fall=[True,False,False,True,True,True,False,True,False,
+      True,True,True,True,False,False,True,False,False,False,
+      True,False,True,True,True,True,True,True,False,True,
+      True,True,True,True,True,True,True,True,False,True]
+climb=[False,False,False,True,False,False,False,False,False,
+       False,False,False,False,False,False,False,False,
+       False,False,False,False,False,False,True,False,
+       False,False,False,False,True,True,False,True,
+       True,False,False,False,False,True]
+drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
+      36,37,0,3,38,39,40,41,0,0,0,44,3,0,45,46,47,0,0]
+light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
+       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 canlit=[True,False,False,False,True,True,False,False,False,
         True,False,True,True,False,False,True,True,False,False,
-        True]
-put=[0,1,2,3,0,0,7,8,0,0,0,9,0,10,0,0,0,11,
-     0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19]
-diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0]
-digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0]
+        True,False,False,True,False,True,True,True,True,True,
+        True,True,True,True,True,True,True,True,True,True]
+put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
+     0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
+     30,25,26,27,0,28,33,34,35,36]
+diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,0,2,#雪块(line.2,col.6)：铲子
+        0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000]              #水 unfinished!
+digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,0,2,
+         0,0,0,0,0,0,2,2,2,0,0,2,0,0,0,1,1]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
        '棉花','线','锄头模板','木锄头头','石锄头头','铁锄头头',
        '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头',
-       '石握柄','岩石之心','松散的云','云','火把','布']
+       '石握柄','岩石之心','松散的云','云','火把','布',
+       '沙子','仙人掌','松果','雪球','蕨','雪块','铁苹果',
+       '棉花种子','可可','粉色郁金香','橘黄郁金香','玫瑰']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -961,19 +1050,30 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            22:((20,1),(2,1)),23:((20,1),(5,1)),25:((8,1),(24,1)),
            26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1)),
            30:((14,1),(2,1)),31:((2,512),),33:((32,8),),32:((33,1),),
-           34:((15,1),(35,1)),35:((19,2),)}
-cancraft=[0,0,2,7,19,35,34,6,13,8,9,10,16,25,28,20,21,22,23,
+           34:((15,1),(35,1)),35:((19,2),),41:((39,8),),42:((4,1),(5,1)),
+           43:((18,1),)}
+cancraft=[0,0,2,7,19,35,43,34,41,42,6,13,8,9,10,16,25,28,20,21,22,23,
           26,29,14,15,30,31,33,32,0,0]
-cancraftnum=[0,0,1,2,2,1,4,1,1,1,1,1,1,1,1,1,1,1,1,
+cancraftnum=[0,0,1,2,2,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
              1,1,1,1,1,1,1,8,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
 toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
 
 def worldgnr():
-    global world,dheights
+    global world,dheights,biomes
     world=[]
     dheights=[]
+    biomes=[1,3,5,0,0,6,4,2]
+    if random()<0.5:
+        biomes[0]=2
+        biomes[7]=1
+    if random()<0.5:
+        biomes[1]=4
+        biomes[6]=3
+    if random()<0.5:
+        biomes[2]=6
+        biomes[5]=5
     for i in range(width):
         world.append([])
         dheight=int(noise(i/32)*28)+114
@@ -990,8 +1090,22 @@ def worldgnr():
                     world[i].append(Block(0,i,j))
             else:
                 world[i].append(Block(0,i,j))
-        for j in range(dheight,dheight+dwidth):
-            world[i].append(Block(1,i,j))
+        curbio=biomes[i//128]
+        if curbio==0 or curbio==1:
+            for j in range(dheight,dheight+dwidth):
+                world[i].append(Block(1,i,j))
+        elif curbio==5:
+            for j in range(dheight,dheight+dwidth):
+                world[i].append(Block(20,i,j))
+        elif curbio==3:
+            for j in range(dheight,dheight+dwidth):
+                world[i].append(Block(2,i,j))
+        elif curbio==2:
+            for j in range(dheight,dheight+dwidth):
+                world[i].append(Block(38,i,j))
+        else:
+            for j in range(dheight,dheight+dwidth):
+                world[i].append(Block(1,i,j))
         for j in range(dheight+dwidth,height):
             if noise([i/8,j/8])>0.3:
                 world[i].append(Block(6,i,j))
@@ -1001,26 +1115,117 @@ def worldgnr():
                 world[i].append(Block(14,i,j))
             else:
                 world[i].append(Block(2,i,j))
-        grandom=random()
-        if grandom<0.2:
-            world[i][dheight]=Block(9,i,j)
-        elif grandom<0.4:
-            world[i][dheight]=Block(11,i,j)
-        elif grandom<0.5:
-            world[i][dheight]=Block(12,i,j)
-        else:
-            world[i][dheight]=Block(5,i,j)
-        if i>3 and random()<0.125:
-            trheight=randint(4,6)
-            exdheight=int(noise((i-1)/32)*28)+114
-            world[i-1][exdheight-1]=world[i-1][exdheight]=Block(3,i,j)
-            for j in range(exdheight-2,exdheight-trheight-1,-1):
-                world[i-1][j]=Block(3,i,j)
-                if random()>0.2:
-                    world[i][j]=Block(4,i,j)
-                if random()>0.2:
-                    world[i-2][j]=Block(4,i,j)
-            world[i-1][exdheight-trheight-1]=Block(4,i,j)
+        if curbio==0:
+            grandom=random()
+            if grandom<0.2:
+                world[i][dheight]=Block(9,i,j)
+            elif grandom<0.4:
+                world[i][dheight]=Block(11,i,j)
+            elif grandom<0.5:
+                world[i][dheight]=Block(12,i,j)
+            else:
+                world[i][dheight]=Block(5,i,j)
+            if i>3 and random()<0.125:
+                trheight=randint(4,6)
+                exdheight=dheights[i-1]
+                world[i-1][exdheight-1]=world[i-1][exdheight]=Block(3,i,j)
+                for j in range(exdheight-2,exdheight-trheight-1,-1):
+                    world[i-1][j]=Block(3,i,j)
+                    if random()>0.2:
+                        world[i][j]=Block(4,i,j)
+                    if random()>0.2:
+                        world[i-2][j]=Block(4,i,j)
+                world[i-1][exdheight-trheight-1]=Block(4,i,j)
+        elif curbio==5:
+            grandom=random()
+            if grandom<0.125:
+                cheight=randint(2,4)
+                for j in range(cheight):
+                    world[i][dheight-j-1]=Block(21,i,dheight-1-j)
+            elif grandom<0.325:
+                world[i][dheight-1]=Block(11,i,dheight-1)
+        elif curbio==3:
+            grandom=random()
+            if grandom<0.375:
+                world[i][dheight-1]=Block(11,i,dheight-1)
+            else:
+                world[i][dheight-1]=Block(22,i,dheight-1)
+        elif curbio==1:
+            grandom=random()
+            if grandom<0.2:
+                world[i][dheight]=Block(26,i,j)
+            elif grandom<0.4:
+                world[i][dheight]=Block(25,i,j)
+            else:
+                world[i][dheight]=Block(22,i,j)
+            if i>3 and random()<0.125:
+                trheight=randint(4,6)
+                exdheight=int(noise((i-1)/32)*28)+114
+                world[i-1][exdheight-1]=world[i-1][exdheight]=Block(23,i,j)
+                for j in range(exdheight-2,exdheight-trheight-1,-1):
+                    world[i-1][j]=Block(23,i,j)
+                    if random()>0.2:
+                        world[i][j]=Block(24,i,j)
+                    if random()>0.2:
+                        world[i-2][j]=Block(24,i,j)
+                world[i-1][exdheight-trheight-1]=Block(24,i,j)
+        elif curbio==6:
+            grandom=random()
+            if grandom<0.125:
+                world[i][dheight]=Block(11,i,j)
+            else:
+                world[i][dheight]=Block(5,i,j)
+            trandom=random()
+            if i>3 and trandom<0.4:
+                trheight=randint(5,9)
+                exdheight=dheights[i-1]
+                world[i-1][exdheight-1]=world[i-1][exdheight]=Block(3,i,j)
+                for j in range(exdheight-2,exdheight-trheight-1,-1):
+                    world[i-1][j]=Block(32,i,j)
+                    if random()>0.2:
+                        world[i][j]=Block(31,i,j)
+                    if random()>0.2:
+                        world[i-2][j]=Block(31,i,j)
+                world[i-1][exdheight-trheight-1]=Block(31,i,j)
+            elif i>3 and trandom<0.65:
+                trheight=randint(1,3)
+                exdheight=dheights[i-1]
+                for j in range(exdheight,exdheight-trheight-1,-1):
+                    world[i-1][j]=Block(32,i,j)
+                    if random()>0.125:
+                        world[i][j]=Block(4,i,j)
+                    if random()>0.125:
+                        world[i-2][j]=Block(4,i,j)
+                world[i-1][exdheight-trheight-1]=Block(4,i,j)
+        elif curbio==4:
+            grandom=random()
+            if grandom<0.2:
+                world[i][dheight]=Block(9,i,j)
+            elif grandom<0.3:
+                world[i][dheight]=Block(11,i,j)
+            elif grandom<0.5:
+                world[i][dheight]=Block(34,i,j)
+            elif grandom<0.6:
+                world[i][dheight]=Block(35,i,j)
+            elif grandom<0.7:
+                world[i][dheight]=Block(36,i,j)
+            else:
+                world[i][dheight]=Block(5,i,j)
+            if i>3 and random()<0.1:
+                trheight=randint(4,6)
+                exdheight=dheights[i-1]
+                world[i-1][exdheight-1]=world[i-1][exdheight]=Block(3,i,j)
+                for j in range(exdheight-2,exdheight-trheight-1,-1):
+                    world[i-1][j]=Block(3,i,j)
+                    if random()>0.2:
+                        world[i][j]=Block(4,i,j)
+                    if random()>0.2:
+                        world[i-2][j]=Block(4,i,j)
+                world[i-1][exdheight-trheight-1]=Block(4,i,j)
+        elif curbio==2:
+            world[i][dheight]=Block(37,i,dheight)
+            if random()<0.2:
+                world[i][dheight-1]=Block(11,i,dheight-1)
     if random()>0.5:
         world[256][50]=Block(17,256,50)
         world[768][50]=Block(18,768,50)
@@ -1030,12 +1235,17 @@ def worldgnr():
     for i in range(-1,2):
         world[256+i][51]=Block(16,256+i,51)
         world[768+i][51]=Block(16,768+i,51)
+    print(biomes)
 
 def freeze(dt):
     if ismainmenu or ischoosing:
         return
     with open('world/'+worldname,'w') as f:
         f.write(str(chopped)+'\n')
+        f.write(str(respawnx)+' '+str(respawny)+'\n')
+        for i in biomes:
+            f.write(str(i)+' ')
+        f.write('\n')
         f.write(str(entities[0].x)+'\n')
         f.write(str(entities[0].y)+'\n')
         f.write(str(entities[0].heart)+'\n')
@@ -1063,10 +1273,16 @@ def freeze(dt):
             f.write('\n')
 
 def readworld():
-    global chopped
+    global chopped,respawnx,respawny,biomes
     if exists('world/'+worldname):
         with open('world/'+worldname,'r') as f:
             chopped=int(f.readline().strip())
+            respawnx,respawny=f.readline().strip().split(' ')
+            respawnx=int(respawnx)
+            respawny=int(respawny)
+            biomes=f.readline().strip().split(' ')
+            for i in range(len(biomes)):
+                biomes[i]=int(biomes[i])
             entities[0].x=int(f.readline().strip())
             entities[0].y=int(f.readline().strip())
             entities[0].heart=int(f.readline().strip())
@@ -1167,6 +1383,8 @@ def on_key_press(symbol,modifiers):
         if symbol==pgt.window.key.ENTER:
             entities[0].heart=entities[0].mxheart
             entities[0].hunger=entities[0].mxhunger
+            entities[0].x=respawnx
+            entities[0].y=respawny
             isdead=False
     if symbol==pgt.window.key.A:
         entities[0].isleft=True
@@ -1174,6 +1392,8 @@ def on_key_press(symbol,modifiers):
     if symbol==pgt.window.key.D:
         entities[0].isright=True
         entities[0].lastleft=False
+    if symbol==pgt.window.key.W:
+        entities[0].isclimbing=True
     if symbol==pgt.window.key.SPACE and entities[0].jump<0.95 and not entities[0].falling():
         entities[0].jump=1
     if symbol==pgt.window.key.UP:
@@ -1337,6 +1557,8 @@ def on_key_release(symbol,modifiers):
         entities[0].isleft=False
     if symbol==pgt.window.key.D:
         entities[0].isright=False
+    if symbol==pgt.window.key.W:
+        entities[0].isclimbing=False
 
 @window.event
 def on_mouse_press(x,y,button,modifiers):
@@ -1359,7 +1581,8 @@ def on_mouse_press(x,y,button,modifiers):
             entities[0].moved+=1
             if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==12:
                 entities[0].backpack[entities[0].chosi][entities[0].chosj].use(1)
-        if world[curx][cury].id==3:
+        if world[curx][cury].id==3 or world[curx][cury].id==23 or \
+           world[curx][cury].id==32:
             chopped+=1
         world[curx][cury]=Block(0,curx,cury)
     if button==pgt.window.mouse.RIGHT and entities[0].dis(curx,cury)<=3:
@@ -1426,7 +1649,8 @@ def on_draw():
     blbatch2=pgt.graphics.Batch()
     for i in range(34):
         for j in range(20):
-            if world[i+entities[0].x-hconst][j+entities[0].y-wconst].light>0:
+            if world[i+entities[0].x-hconst][j+entities[0].y-wconst].light>0 and \
+               not world[i+entities[0].x-hconst][j+entities[0].y-wconst].id==0:
                 blocksp.append(pgt.sprite.Sprite(
                     img=images[world[i+entities[0].x-hconst][j+entities[0].y-wconst].id],
                     x=1024-(i*32)+int(entities[0].xx),
