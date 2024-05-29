@@ -18,7 +18,7 @@ class Block():
             else:
                 self.clight=0
         self.light=self.clight
-    def use(self):
+    def use(self,x,y):
         global iscrafting,istooling,curchoi
         if not iscrafting and not istooling:
             if self.id==7:
@@ -27,6 +27,22 @@ class Block():
             if self.id==10:
                 istooling=True
                 curchoi=0
+        if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==48:
+            if self.id==38:
+                entities[0].bdel(48,1)
+                if not entities[0].badd(49,1):
+                    entities.append(Dropped(entities[0].x,entities[0].y,49))
+                self.id=0
+                if y<=dheights[x]:
+                    self.clight=8
+                else:
+                    self.clight=0
+            elif self.id in (39,40,41,42,43,44,45):
+                self.id=0
+                if y<=dheights[x]:
+                    self.clight=8
+                else:
+                    self.clight=0
     def update(self,x,y):
         self.light=self.clight
         if canlit[world[x+1][y].id] or world[x+1][y].clight>0:
@@ -85,6 +101,45 @@ class Block():
                         world[x-1][j]=Block(31,x-1,j)
                 if world[x][y-trheight-1].id==0:
                     world[x][y-trheight-1]=Block(31,x,y-trheight-1)
+        elif self.id in (38,39,40,41,42,43,44,45):
+            if world[x][y+1].id==0:
+                world[x][y+1]=Block(self.id,x,y+1)
+                self.id=0
+                if y<=dheights[x]:
+                    self.clight=8
+                else:
+                    self.clight=0
+            elif world[x][y+1].id in (39,40,41,42,43,44,45):
+                curheight=(46-self.id)+(46-world[x][y+1].id)
+                if curheight<=8:
+                    world[x][y+1].id=46-curheight
+                    self.id=0
+                    if y<=dheights[x]:
+                        self.clight=8
+                    else:
+                        self.clight=0
+                else:
+                    world[x][y+1].id=38
+                    self.id=46-(curheight-8)
+            else:
+                if world[x+1][y].id==0 and self.id<45:
+                    curheight=46-self.id
+                    world[x+1][y].id=46-(curheight//2)
+                    self.id=46-(curheight//2+curheight%2)
+                elif world[x+1][y].id in (38,39,40,41,42,43,44,45):
+                    curheight=(46-self.id)+(46-world[x+1][y].id)
+                    if curheight>1:
+                        world[x+1][y].id=46-(curheight//2)
+                        self.id=46-(curheight//2+curheight%2)
+                if world[x-1][y].id==0 and self.id<45:
+                    curheight=46-self.id
+                    world[x-1][y].id=46-(curheight//2)
+                    self.id=46-(curheight//2+curheight%2)
+                elif world[x-1][y].id in (38,39,40,41,42,43,44,45):
+                    curheight=(46-self.id)+(46-world[x-1][y].id)
+                    if curheight>1:
+                        world[x-1][y].id=46-(curheight//2)
+                        self.id=46-(curheight//2+curheight%2)
 
 class Item():
     def __init__(self,cid):
@@ -118,6 +173,14 @@ class Item():
             self.cnt-=1
             if self.cnt==0:
                 self.id=0
+        elif self.id==49:
+            if world[entities[0].x][entities[0].y-1].id==0:
+                world[entities[0].x][entities[0].y-1]=Block(38,entities[0].x,entities[0].y)
+                self.cnt-=1
+                if self.cnt==0:
+                    self.id=0
+                if not entities[0].badd(48,1):
+                    entities.append(Dropped(entities[0].x,entities[0].y,48))
 
 class Tool():
     def __init__(self,ctid,cfirst,csecond):
@@ -389,7 +452,7 @@ class Player(Entity):
         global isdead
         if self.falling() and self.jump<0.95 and self.y<240 and \
            not (self.isclimbing and self.canclimb()):
-            for i in range(int(64*dt)):
+            for i in range(int(64*((not self.inwater())*0.5+0.5)*dt)):
                 if self.falling() and self.jump<0.95 and self.y<240:
                     self.move(0,1)
                     self.fallen+=1
@@ -398,17 +461,17 @@ class Player(Entity):
                 self.hurt(self.fallen//32)
             self.fallen=0
         if self.isclimbing:
-            for i in range(int(48*dt)):
+            for i in range(int(48*((not self.inwater())*0.5+0.5)*dt)):
                 if self.canclimb() and self.y>20:
                     self.move(0,-1)
                     self.moved+=1
         if self.isleft and self.canleft():
-            for i in range(int(64*dt)):
+            for i in range(int(64*((not self.inwater())*0.5+0.5)*dt)):
                 if self.x<1000 and self.canleft():
                     self.move(1,0)
                     self.moved+=1
         if self.isright and self.canright():
-            for i in range(int(64*dt)):
+            for i in range(int(64*((not self.inwater())*0.5+0.5)*dt)):
                 if self.x>20 and self.canright():
                     self.move(-1,0)
                     self.moved+=1
@@ -512,6 +575,13 @@ class Player(Entity):
                climb[world[self.x][self.y-2].id] or \
                climb[world[self.x][self.y-(self.yy==0)].id]) and \
                self.canjump()
+    def inwater(self):
+        return world[self.x+1][self.y-1].id in (38,39,40,41,42,43,44,45) or \
+               world[self.x+1][self.y-2].id in (38,39,40,41,42,43,44,45) or \
+               world[self.x+1][self.y-(self.yy==0)].id in (38,39,40,41,42,43,44,45) or \
+               world[self.x][self.y-1].id in (38,39,40,41,42,43,44,45) or \
+               world[self.x][self.y-2].id in (38,39,40,41,42,43,44,45) or \
+               world[self.x][self.y-(self.yy==0)].id in (38,39,40,41,42,43,44,45)
     
 class Dropped(Entity):
     def __init__(self,cx,cy,ciid):
@@ -974,9 +1044,9 @@ iimages=[]
 timages=[]
 eimages=[]
 limages=[]
-for i in range(39):
+for i in range(47):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(48):
+for i in range(51):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -1014,27 +1084,33 @@ edgconst=1
 fall=[True,False,False,True,True,True,False,True,False,
       True,True,True,True,False,False,True,False,False,False,
       True,False,True,True,True,True,True,True,False,True,
-      True,True,True,True,True,True,True,True,False,True]
+      True,True,True,True,True,True,True,True,False,True,
+      True,True,True,True,True,True,True,False]
 climb=[False,False,False,True,False,False,False,False,False,
        False,False,False,False,False,False,False,False,
        False,False,False,False,False,False,True,False,
        False,False,False,False,True,True,False,True,
-       True,False,False,False,False,True]
+       True,False,False,False,False,True,False,False,False,
+       False,False,False,False,False]
 drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
-      36,37,0,3,38,39,40,41,0,0,0,44,3,0,45,46,47,0,0]
+      36,37,0,3,38,39,40,41,0,0,0,44,3,0,45,46,47,0,0,
+      0,0,0,0,0,0,0,50]
 light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
-       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 canlit=[True,False,False,False,True,True,False,False,False,
         True,False,True,True,False,False,True,True,False,False,
         True,False,False,True,False,True,True,True,True,True,
-        True,True,True,True,True,True,True,True,True,True]
+        True,True,True,True,True,True,True,True,True,True,
+        True,True,True,True,True,True,True,True,False]
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
-     30,25,26,27,0,28,33,34,35,36]
+     30,25,26,27,0,28,33,34,35,36,0,0,0]
 diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,0,2,#雪块(line.2,col.6)：铲子
-        0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000]              #水 unfinished!
+        0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
+        ,10000,10000,10000,10000,3]
 digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,0,2,
-         0,0,0,0,0,0,2,2,2,0,0,2,0,0,0,1,1]
+         0,0,0,0,0,0,2,2,2,0,0,2,0,0,0,1,1,1,1,1,1,1,1,1,
+         1]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
@@ -1042,7 +1118,8 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头',
        '石握柄','岩石之心','松散的云','云','火把','布',
        '沙子','仙人掌','松果','雪球','蕨','雪块','铁苹果',
-       '棉花种子','可可','粉色郁金香','橘黄郁金香','玫瑰']
+       '棉花种子','可可','粉色郁金香','橘黄郁金香','玫瑰',
+       '空木桶','水桶','未打磨的玛瑙']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -1051,10 +1128,10 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1)),
            30:((14,1),(2,1)),31:((2,512),),33:((32,8),),32:((33,1),),
            34:((15,1),(35,1)),35:((19,2),),41:((39,8),),42:((4,1),(5,1)),
-           43:((18,1),)}
-cancraft=[0,0,2,7,19,35,43,34,41,42,6,13,8,9,10,16,25,28,20,21,22,23,
+           43:((18,1),),48:((3,1),)}
+cancraft=[0,0,2,7,19,35,43,34,41,42,6,13,48,8,9,10,16,25,28,20,21,22,23,
           26,29,14,15,30,31,33,32,0,0]
-cancraftnum=[0,0,1,2,2,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+cancraftnum=[0,0,1,2,2,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
              1,1,1,1,1,1,1,8,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
@@ -1113,6 +1190,8 @@ def worldgnr():
                 world[i].append(Block(13,i,j))
             elif noise([i/4,j/4])<-0.45:
                 world[i].append(Block(14,i,j))
+            elif noise([(i+1025)/4,(j+1025)/4])>0.45:
+                world[i].append(Block(46,i,j))
             else:
                 world[i].append(Block(2,i,j))
         if curbio==0:
@@ -1590,7 +1669,7 @@ def on_mouse_press(x,y,button,modifiers):
             entities[0].bput(curx,cury)
             entities[0].moved+=1
         else:
-            world[curx][cury].use()
+            world[curx][cury].use(curx,cury)
             entities[0].moved+=0.5
 
 @window.event
