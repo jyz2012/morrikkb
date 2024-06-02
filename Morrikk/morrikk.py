@@ -501,7 +501,7 @@ class Player(Entity):
             self.moved=0
         if self.heart<=0:
             isdead=True
-        self.flick+=dt*12
+        self.flick+=dt*8
     def badd(self,iid,num):
         for i in range(8):
             for j in range(6):
@@ -659,13 +659,17 @@ class Bird(Entity):
             redr.draw()
             self.ishurten=False
     def canleft(self):
-        return fall[world[self.x-1][self.y+1].id] and fall[world[self.x-1][self.y].id]
+        return fall[world[self.x-1][self.y+1].id] and \
+               fall[world[self.x-1][self.y].id]
     def canright(self):
-        return fall[world[self.x][self.y+1].id] and fall[world[self.x][self.y].id]
+        return fall[world[self.x][self.y+1].id] and \
+               fall[world[self.x][self.y].id]
     def canup(self):
-        return fall[world[self.x][self.y].id] and fall[world[self.x-1][self.y].id]
+        return fall[world[self.x][self.y].id] and \
+               fall[world[self.x-1][self.y].id]
     def candown(self):
-        return fall[world[self.x][self.y+1].id] and fall[world[self.x-1][self.y+1].id]
+        return fall[world[self.x][self.y+1].id] and \
+               fall[world[self.x-1][self.y+1].id]
     def update(self,dt):
         if self.toward==1:
             for i in range(int(64*dt)):
@@ -692,7 +696,7 @@ class Bird(Entity):
     def isdel(self):
         return entities[0].dis(self.x,self.y)>=128 or self.heart<=0
     def delled(self):
-        enum[self.id]-=1
+        entities.append(Dropped(self.x,self.y,51))
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
@@ -749,7 +753,7 @@ class KingOTBirds(Entity):
     def isdel(self):
         return self.heart<=0
     def delled(self):
-        return
+        entities.append(Dropped(self.x,self.y,52))
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
@@ -934,7 +938,7 @@ class SonOTRocks(Entity):
     def isdel(self):
         return self.heart<=0
     def delled(self):
-        return
+        entities.append(Dropped(self.x,self.y,53))
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
@@ -981,9 +985,74 @@ class QueenOTClouds(Entity):
     def isdel(self):
         return self.heart<=0
     def delled(self):
-        return
+        entities.append(Dropped(self.x,self.y,54))
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
+
+class Pig(Entity):
+    def __init__(self,cx,cy):
+        super().__init__(cx,cy,0,0,9,20,20,2,1)
+        self.flick=0
+        self.isleft=False
+        self.fallen=0
+    def draw(self,batch):
+        sp=pgt.sprite.Sprite(
+                    img=eimages[9][self.isleft][int(self.flick)%4],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
+                    )
+        sp.draw()
+        if self.ishurten:
+            redr=pgt.shapes.Rectangle(x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                                      y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                                      width=64,height=32,
+                                      color=(255,0,0,128))
+            redr.draw()
+            self.ishurten=False
+    def update(self,dt):
+        self.flick+=dt*8
+        if self.isfall():
+            for i in range(int(64*dt)):
+                if self.isfall():
+                    self.move(0,1)
+                    self.fallen+=1
+            return
+        if self.fallen>=128:
+            self.hurt(self.fallen//24)
+            self.fallen=0
+        if self.isleft:
+            for i in range(int(56*dt)):
+                if self.canright():
+                    self.move(1,0)
+        else:
+            for i in range(int(56*dt)):
+                if self.canleft():
+                    self.move(-1,0)
+        if random()<0.01:
+            self.isleft=not self.isleft
+    def isfall(self):
+        return fall[world[self.x][self.y+1].id] and \
+               fall[world[self.x-1][self.y+1].id] and \
+               fall[world[self.x-2+(self.xx==0)][self.y+1].id]
+    def canleft(self):
+        return fall[world[self.x][self.y-1+(self.yy==0)].id] and \
+               fall[world[self.x][self.y].id]
+    def canright(self):
+        return fall[world[self.x-1-(self.xx==0)][self.y-1+(self.yy==0)].id] and \
+               fall[world[self.x-1-(self.xx==0)][self.y].id]
+    def canup(self):
+        return fall[world[self.x][self.y].id] and \
+               fall[world[self.x-1][self.y].id] and \
+               fall[world[self.x-2+(self.xx==0)][self.y].id]
+    def isdel(self):
+        return self.heart<=0 or entities[0].dis(self.x,self.y)>=128
+    def delled(self):
+        entities.append(Dropped(self.x,self.y,55))
+    def getfreeze(self):
+        return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
+
+
 
 noise=PerlinNoise()
 worldname='test.world'
@@ -1007,7 +1076,7 @@ def init():
     respawny=110
     needkotb=False
     enum=[]
-    for i in range(9):
+    for i in range(10):
         enum.append(0)
     entities=[Player()]
     world=[]
@@ -1044,9 +1113,9 @@ iimages=[]
 timages=[]
 eimages=[]
 limages=[]
-for i in range(47):
+for i in range(48):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(51):
+for i in range(57):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -1075,6 +1144,10 @@ for i in range(1):
 eimages.append([])
 for i in range(2):
     eimages[8].append(pgt.image.load('imgs/entities/8/'+str(i)+'.png'))
+eimages.append([[],[]])
+for i in range(4):
+    eimages[9][0].append(pgt.image.load('imgs/entities/9/l/'+str(i)+'.png'))
+    eimages[9][1].append(pgt.image.load('imgs/entities/9/r/'+str(i)+'.png'))
 for i in range(9):
     limages.append(pgt.image.load('imgs/light/'+str(i)+'.png'))
 
@@ -1085,32 +1158,32 @@ fall=[True,False,False,True,True,True,False,True,False,
       True,True,True,True,False,False,True,False,False,False,
       True,False,True,True,True,True,True,True,False,True,
       True,True,True,True,True,True,True,True,False,True,
-      True,True,True,True,True,True,True,False]
+      True,True,True,True,True,True,True,False,True]
 climb=[False,False,False,True,False,False,False,False,False,
        False,False,False,False,False,False,False,False,
        False,False,False,False,False,False,True,False,
        False,False,False,False,True,True,False,True,
        True,False,False,False,False,True,False,False,False,
-       False,False,False,False,False]
+       False,False,False,False,False,False]
 drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
       36,37,0,3,38,39,40,41,0,0,0,44,3,0,45,46,47,0,0,
-      0,0,0,0,0,0,0,50]
+      0,0,0,0,0,0,0,50,56]
 light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 canlit=[True,False,False,False,True,True,False,False,False,
         True,False,True,True,False,False,True,True,False,False,
         True,False,False,True,False,True,True,True,True,True,
         True,True,True,True,True,True,True,True,True,True,
-        True,True,True,True,True,True,True,True,False]
+        True,True,True,True,True,True,True,True,False,False]
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
-     30,25,26,27,0,28,33,34,35,36,0,0,0]
+     30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47]
 diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,0,2,#雪块(line.2,col.6)：铲子
         0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
-        ,10000,10000,10000,10000,3]
+        ,10000,10000,10000,10000,3,0]
 digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,0,2,
          0,0,0,0,0,0,2,2,2,0,0,2,0,0,0,1,1,1,1,1,1,1,1,1,
-         1]
+         1,0]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
@@ -1119,7 +1192,8 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '石握柄','岩石之心','松散的云','云','火把','布',
        '沙子','仙人掌','松果','雪球','蕨','雪块','铁苹果',
        '棉花种子','可可','粉色郁金香','橘黄郁金香','玫瑰',
-       '空木桶','水桶','未打磨的玛瑙']
+       '空木桶','水桶','未打磨的玛瑙','羽毛','彩虹羽毛',
+       '岩石雕塑','云巅皇冠','生猪肉','暗夜祭坛']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -1128,11 +1202,11 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1)),
            30:((14,1),(2,1)),31:((2,512),),33:((32,8),),32:((33,1),),
            34:((15,1),(35,1)),35:((19,2),),41:((39,8),),42:((4,1),(5,1)),
-           43:((18,1),),48:((3,1),)}
-cancraft=[0,0,2,7,19,35,43,34,41,42,6,13,48,8,9,10,16,25,28,20,21,22,23,
-          26,29,14,15,30,31,33,32,0,0]
-cancraftnum=[0,0,1,2,2,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,1,1,8,0,0]
+           43:((18,1),),48:((3,1),),56:((52,1),(53,1),(54,1))}
+cancraft=[0,0,2,7,19,35,43,34,41,42,6,13,56,48,8,9,10,16,25,28,20,
+          21,22,23,26,29,14,15,30,31,33,32,0,0]
+cancraftnum=[0,0,1,2,2,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,1,1,1,1,1,8,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
 toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
@@ -1393,6 +1467,9 @@ def readworld():
                     entities[len(entities)-1].heart=curs[3]
                 elif curs[0]==8:
                     entities.append(QueenOTClouds(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==9:
+                    entities.append(Pig(curs[1],curs[2]))
                     entities[len(entities)-1].heart=curs[3]
             for i in range(8):
                 linee=f.readline().strip().split(' ')
@@ -1869,9 +1946,19 @@ def update(dt):
             newy=int(random()*32+32)*-1+entities[0].y-10
         if newx>0 and newx<1024 and newy>0 and newy<256:
             if fall[world[newx][newy].id] and \
-               newy<int(noise(newx/32)*28)+114 and enum[2]<100:
+               newy<dheights[newx] and enum[2]<100:
                 entities.append(Bird(newx,newy))
                 enum[2]+=1
+    if random()<0.005:
+        if random()>0.5:
+            newx=int(random()*32+32)+entities[0].x
+        else:
+            newx=int(random()*32+32)*-1+entities[0].x
+        if newx>0 and newx<1024 and enum[9]<100 and \
+           biomes[newx//128] in (4,0):
+            newy=dheights[newx]-1
+            if fall[world[newx][newy].id] and fall[world[newx][newy-1].id]:
+                entities.append(Pig(newx,newy))
     if chopped>=100:
         for i in range(100):
             if random()>0.5:
@@ -1899,6 +1986,7 @@ def update(dt):
                 entities[i-dct].delled()
                 entities.pop(i-dct)
                 dct+=1
+                enum[entities[i-dct].id]-=1
     for i in range(34):
         for j in range(22):
             world[i+entities[0].x-hconst][j+entities[0].y-wconst].update(
