@@ -13,13 +13,14 @@ class Block():
         if self.id!=0:
             self.clight=light[self.id]
         else:
-            if y<=dheights[x]:
+            if y<=dheights[x] and not isdark:
                 self.clight=8
             else:
                 self.clight=0
         self.light=self.clight
     def use(self,x,y):
-        global iscrafting,istooling,curchoi
+        global iscrafting,istooling,curchoi,entities,lentities,dentities,\
+               world,lworld,dworld,isdark
         if not iscrafting and not istooling:
             if self.id==7:
                 iscrafting=True
@@ -43,6 +44,28 @@ class Block():
                     self.clight=8
                 else:
                     self.clight=0
+        if self.id==47:
+            print(isdark)
+            if isdark==False:
+                isdark=True
+                lworld=list(world)
+                world=list(dworld)
+                lentities=list(entities)
+                entities=list(dentities)
+                if(len(entities)==0):
+                    entities.append(lentities[0])
+                else:
+                    entities[0]=lentities[0]
+            else:
+                isdark=False
+                dworld=list(world)
+                world=list(lworld)
+                dentities=list(entities)
+                entities=list(lentities)
+                if(len(entities)==0):
+                    entities.append(dentities[0])
+                else:
+                    entities[0]=dentities[0]
     def update(self,x,y):
         self.light=self.clight
         if canlit[world[x+1][y].id] or world[x+1][y].clight>0:
@@ -105,7 +128,7 @@ class Block():
             if world[x][y+1].id==0:
                 world[x][y+1]=Block(self.id,x,y+1)
                 self.id=0
-                if y<=dheights[x]:
+                if y<=dheights[x] and not isdark:
                     self.clight=8
                 else:
                     self.clight=0
@@ -114,7 +137,7 @@ class Block():
                 if curheight<=8:
                     world[x][y+1].id=46-curheight
                     self.id=0
-                    if y<=dheights[x]:
+                    if y<=dheights[x] and not isdark:
                         self.clight=8
                     else:
                         self.clight=0
@@ -582,6 +605,8 @@ class Player(Entity):
                world[self.x][self.y-1].id in (38,39,40,41,42,43,44,45) or \
                world[self.x][self.y-2].id in (38,39,40,41,42,43,44,45) or \
                world[self.x][self.y-(self.yy==0)].id in (38,39,40,41,42,43,44,45)
+    def getfreeze(self):
+        return str(self.id)
     
 class Dropped(Entity):
     def __init__(self,cx,cy,ciid):
@@ -1060,7 +1085,8 @@ worldname='test.world'
 def init():
     global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
            cholist,chol,entities,enum,world,width,height,worlds,chopped,needkotb,\
-           dheights,biomes,respawnx,respawny
+           dheights,biomes,respawnx,respawny,lworld,dworld,lentities,dentities,\
+           isdark
     ismainmenu=True
     ischoosing=False
     iscrafting=False
@@ -1079,7 +1105,12 @@ def init():
     for i in range(10):
         enum.append(0)
     entities=[Player()]
+    lentities=list(entities)
+    dentities=[]
     world=[]
+    lworld=[]
+    dworld=[]
+    isdark=False
     dheights=[]
     biomes=[]
     width=1024
@@ -1212,7 +1243,7 @@ toolneed={1:(0,1),2:(2,1)}
 toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
 
 def worldgnr():
-    global world,dheights,biomes
+    global world,dheights,biomes,lworld,dworld
     world=[]
     dheights=[]
     biomes=[1,3,5,0,0,6,4,2]
@@ -1225,6 +1256,19 @@ def worldgnr():
     if random()<0.5:
         biomes[2]=6
         biomes[5]=5
+    for i in range(width):
+        dworld.append([])
+        for j in range(height):
+            if noise([i/8+1025,j/8+1025])>0.275:
+                dworld[i].append(Block(6,i,j))
+            elif noise([i/4+1025,j/4+1025])>0.425:
+                dworld[i].append(Block(13,i,j))
+            elif noise([i/4+1025,j/4+1025])<-0.425:
+                dworld[i].append(Block(14,i,j))
+            elif noise([i/4+2050,j/4+2050])>0.425:
+                dworld[i].append(Block(46,i,j))
+            else:
+                dworld[i].append(Block(2,i,j))
     for i in range(width):
         world.append([])
         dheight=int(noise(i/32)*28)+114
@@ -1264,8 +1308,6 @@ def worldgnr():
                 world[i].append(Block(13,i,j))
             elif noise([i/4,j/4])<-0.45:
                 world[i].append(Block(14,i,j))
-            elif noise([(i+1025)/4,(j+1025)/4])>0.45:
-                world[i].append(Block(46,i,j))
             else:
                 world[i].append(Block(2,i,j))
         if curbio==0:
@@ -1388,6 +1430,7 @@ def worldgnr():
     for i in range(-1,2):
         world[256+i][51]=Block(16,256+i,51)
         world[768+i][51]=Block(16,768+i,51)
+    lworld=list(world)
     print(biomes)
 
 def freeze(dt):
@@ -1403,9 +1446,10 @@ def freeze(dt):
         f.write(str(entities[0].y)+'\n')
         f.write(str(entities[0].heart)+'\n')
         f.write(str(entities[0].hunger)+'\n')
-        f.write(str(len(entities)-1)+'\n')
-        for i in range(1,len(entities)):
-            f.write(entities[i].getfreeze())
+        f.write(str(isdark)+'\n')
+        f.write(str(len(lentities))+'\n')
+        for i in range(len(lentities)):
+            f.write(lentities[i].getfreeze())
             f.write('\n')
         for i in range(8):
             for j in range(6):
@@ -1421,12 +1465,21 @@ def freeze(dt):
             f.write('\n')
         for i in range(width):
             for j in range(height):
-                f.write(str(world[i][j].id)+' ')
+                f.write(str(lworld[i][j].id)+' ')
             f.write(str(dheights[i]))
+            f.write('\n')
+        f.write(str(len(dentities))+'\n')
+        for i in range(len(dentities)):
+            f.write(dentities[i].getfreeze())
+            f.write('\n')
+        for i in range(width):
+            for j in range(height):
+                f.write(str(dworld[i][j].id)+' ')
             f.write('\n')
 
 def readworld():
-    global chopped,respawnx,respawny,biomes
+    global chopped,respawnx,respawny,biomes,lworld,dworld,world,\
+           entities,lentities,dentities,isdark
     if exists('world/'+worldname):
         with open('world/'+worldname,'r') as f:
             chopped=int(f.readline().strip())
@@ -1440,6 +1493,8 @@ def readworld():
             entities[0].y=int(f.readline().strip())
             entities[0].heart=int(f.readline().strip())
             entities[0].hunger=int(f.readline().strip())
+            tsisdark=bool(f.readline().strip()=='True')
+            isdark=False
             enlen=int(f.readline().strip())
             for i in range(enlen):
                 curs=f.readline()
@@ -1491,6 +1546,49 @@ def readworld():
                 dheights.append(int(linee[height]))
                 for j in range(height):
                     world[i].append(Block(int(linee[j]),i,j))
+            lworld=list(world)
+            isdark=True
+            enlen=int(f.readline().strip())
+            for i in range(enlen):
+                curs=f.readline()
+                curs=curs.strip().split(' ')
+                for i in range(len(curs)):
+                    curs[i]=int(curs[i])
+                if curs[0]==1:
+                    entities.append(Dropped(curs[2],curs[3],curs[1]))
+                elif curs[0]==2:
+                    entities.append(Bird(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                    enum[2]+=1
+                elif curs[0]==3:
+                    entities.append(DroppedTool(curs[3],curs[4],curs[1],curs[2],curs[5],curs[6],curs[7]))
+                elif curs[0]==4:
+                    entities.append(KingOTBirds(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==5:
+                    entities.append(AngryBird(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==6:
+                    entities.append(Fireball(curs[1],curs[2],curs[3],curs[4]))
+                elif curs[0]==7:
+                    entities.append(SonOTRocks(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==8:
+                    entities.append(QueenOTClouds(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==9:
+                    entities.append(Pig(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+            for i in range(width):
+                linee=f.readline().strip().split(' ')
+                dworld.append([])
+                for j in range(height):
+                    dworld[i].append(Block(int(linee[j]),i,j))
+            isdark=False
+    if tsisdark:
+        jtblock=Block(47,2,2)
+        jtblock.use(2,2)
+
 @window.event
 def on_key_press(symbol,modifiers):
     global iscrafting,curchoi,ismainmenu,ischoosing,worldname,worlds,isdead
@@ -1612,7 +1710,7 @@ def on_key_press(symbol,modifiers):
             entities[0].badd(cancraft[curchoi+2],cancraftnum[curchoi+2])
             for i in craftdict[cancraft[curchoi+2]]:
                 if not entities[0].bdel(i[0],i[1]):
-                    for j in range(cnt-1):
+                    for j in range(cnt):
                         entities[0].badd(craftdict[cancraft[curchoi+2]][j][0],craftdict[cancraft[curchoi+2]][j][1])
                     entities[0].bdel(cancraft[curchoi+2],cancraftnum[curchoi+2])
                     break
@@ -1935,30 +2033,31 @@ def update(dt):
     if ismainmenu or ischoosing or isdead:
         return
     dct=0
-    if random()<0.02:
-        if random()>0.5:
-            newx=int(random()*32+32)+entities[0].x
-        else:
-            newx=int(random()*32+32)*-1+entities[0].x
-        if random()>0.5:
-            newy=int(random()*32+32)+entities[0].y-10
-        else:
-            newy=int(random()*32+32)*-1+entities[0].y-10
-        if newx>0 and newx<1024 and newy>0 and newy<256:
-            if fall[world[newx][newy].id] and \
-               newy<dheights[newx] and enum[2]<100:
-                entities.append(Bird(newx,newy))
-                enum[2]+=1
-    if random()<0.005:
-        if random()>0.5:
-            newx=int(random()*32+32)+entities[0].x
-        else:
-            newx=int(random()*32+32)*-1+entities[0].x
-        if newx>0 and newx<1024 and enum[9]<100 and \
-           biomes[newx//128] in (4,0):
-            newy=dheights[newx]-1
-            if fall[world[newx][newy].id] and fall[world[newx][newy-1].id]:
-                entities.append(Pig(newx,newy))
+    if not isdark:
+        if random()<0.02:
+            if random()>0.5:
+                newx=int(random()*32+32)+entities[0].x
+            else:
+                newx=int(random()*32+32)*-1+entities[0].x
+            if random()>0.5:
+                newy=int(random()*32+32)+entities[0].y-10
+            else:
+                newy=int(random()*32+32)*-1+entities[0].y-10
+            if newx>0 and newx<1024 and newy>0 and newy<256:
+                if fall[world[newx][newy].id] and \
+                   newy<dheights[newx] and enum[2]<100:
+                    entities.append(Bird(newx,newy))
+                    enum[2]+=1
+        if random()<0.005:
+            if random()>0.5:
+                newx=int(random()*32+32)+entities[0].x
+            else:
+                newx=int(random()*32+32)*-1+entities[0].x
+            if newx>0 and newx<1024 and enum[9]<100 and \
+               biomes[newx//128] in (4,0):
+                newy=dheights[newx]-1
+                if fall[world[newx][newy].id] and fall[world[newx][newy-1].id]:
+                    entities.append(Pig(newx,newy))
     if chopped>=100:
         for i in range(100):
             if random()>0.5:
