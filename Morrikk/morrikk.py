@@ -10,7 +10,8 @@ class Block():
     def __init__(self,cid,x,y):
         global dheights
         self.id=cid
-        if self.id!=0:
+        if not self.id in (0,4,5,9,11,12,22,24,25,26,28,29,30,\
+                           31,33,34,35,36,39,40,41,42,43,44,45):
             self.clight=light[self.id]
         else:
             if y<=dheights[x] and not isdark:
@@ -45,7 +46,6 @@ class Block():
                 else:
                     self.clight=0
         if self.id==47:
-            print(isdark)
             if isdark==False:
                 isdark=True
                 lworld=list(world)
@@ -66,6 +66,7 @@ class Block():
                     entities.append(dentities[0])
                 else:
                     entities[0]=dentities[0]
+            world[x][y]=Block(47,x,y)
     def update(self,x,y):
         self.light=self.clight
         if canlit[world[x+1][y].id] or world[x+1][y].clight>0:
@@ -204,6 +205,11 @@ class Item():
                     self.id=0
                 if not entities[0].badd(48,1):
                     entities.append(Dropped(entities[0].x,entities[0].y,48))
+        elif self.id==58:
+            entities[0].hurt(4)
+            self.cnt-=1
+            if self.cnt==0:
+                self.id=0
 
 class Tool():
     def __init__(self,ctid,cfirst,csecond):
@@ -1077,7 +1083,109 @@ class Pig(Entity):
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
-
+class Zombie(Entity):
+    def __init__(self,cx,cy):
+        super().__init__(cx,cy,0,0,10,15,-1,1,2)
+        self.flick=0
+        self.lastleft=True
+        self.lastdmg=0
+    def draw(self,batch):
+        sp=pgt.sprite.Sprite(
+                    img=eimages[0][self.lastleft][int(self.flick)%5],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
+                    )
+        sp.draw()
+        sp2=pgt.sprite.Sprite(
+                    img=eimages[10][self.lastleft],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
+                    )
+        sp2.draw()
+        if self.ishurten:
+            redr=pgt.shapes.Rectangle(x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                                      y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                                      width=32,height=64,
+                                      color=(255,0,0,128))
+            redr.draw()
+            self.ishurten=False
+    def update(self,dt):
+        self.flick+=dt*6
+        if entities[0].dis(self.x,self.y)>0:
+            if self.x<entities[0].x:
+                for i in range(int(dt*56)):
+                    if self.canleft():
+                        self.move(-1,0)
+                    else:
+                        if drop[world[self.x+1][self.y-1].id] not in (0,56):
+                            entities.append(Dropped(self.x+1,self.y-1,drop[world[self.x+1][self.y-1].id]))
+                        world[self.x+1][self.y-1]=Block(0,self.x+1,self.y-1)
+                        if drop[world[self.x+1][self.y-2+(self.yy==0)].id] not in (0,56):
+                            entities.append(Dropped(self.x+1,self.y-2+(self.yy==0),drop[world[self.x+1][self.y-2+(self.yy==0)].id]))
+                        world[self.x+1][self.y-2+(self.yy==0)]=Block(0,self.x+1,self.y-2+(self.yy==0))
+                        if drop[world[self.x+1][self.y].id] not in (0,56):
+                            entities.append(Dropped(self.x+1,self.y,drop[world[self.x+1][self.y].id]))
+                        world[self.x+1][self.y]=Block(0,self.x+1,self.y)
+                self.lastleft=True
+            else:
+                for i in range(int(dt*56)):
+                    if self.canright():
+                        self.move(1,0)
+                    else:
+                        if drop[world[self.x-(self.xx==0)][self.y-1].id] not in (0,56):
+                            entities.append(Dropped(self.x-(self.xx==0),self.y-1,drop[world[self.x-(self.xx==0)][self.y-1].id]))
+                        world[self.x-(self.xx==0)][self.y-1]=Block(0,self.x-(self.xx==0),self.y-1)
+                        if drop[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id] not in (0,56):
+                            entities.append(Dropped(self.x-(self.xx==0),self.y-2+(self.yy==0),drop[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id]))
+                        world[self.x-(self.xx==0)][self.y-2+(self.yy==0)]=Block(0,self.x-(self.xx==0),self.y-2+(self.yy==0))
+                        if drop[world[self.x-(self.xx==0)][self.y].id] not in (0,56):
+                            entities.append(Dropped(self.x-(self.xx==0),self.y,drop[world[self.x-(self.xx==0)][self.y].id]))
+                        world[self.x-(self.xx==0)][self.y]=Block(0,self.x-(self.xx==0),self.y)
+                self.lastleft=False
+        if self.y<entities[0].y-1:
+            if drop[world[self.x][self.y+1].id] not in (0,56):
+                entities.append(Dropped(self.x,self.y+1,drop[world[self.x][self.y+1].id]))
+            world[self.x][self.y+1]=Block(0,self.x,self.y+1)
+            if drop[world[self.x+1-(self.xx==0)][self.y+1].id] not in (0,56):
+                entities.append(Dropped(self.x+1-(self.xx==0),self.y+1,drop[world[self.x+1-(self.xx==0)][self.y+1].id]))
+            world[self.x+1-(self.xx==0)][self.y+1]=Block(0,self.x+1-(self.xx==0),self.y+1)
+        if self.falling():
+            for i in range(int(dt*64)):
+                if self.falling():
+                    self.move(0,1)
+        if entities[0].dis(self.x,self.y)<1 and time()-self.lastdmg>2:
+            entities[0].hurt(4)
+            self.lastdmg=time()
+    def canleft(self):
+        return fall[world[self.x+1][self.y-1].id] and \
+               fall[world[self.x+1][self.y-2+(self.yy==0)].id] and \
+               fall[world[self.x+1][self.y].id]
+    def canright(self):
+        return fall[world[self.x-(self.xx==0)][self.y-1].id] and \
+               fall[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id] and \
+               fall[world[self.x-(self.xx==0)][self.y].id]
+    def canjump(self):
+        return fall[world[self.x][self.y-2-(self.yy==0)].id] and \
+               fall[world[self.x+1-(self.xx==0)][self.y-2-(self.yy==0)].id]
+    def falling(self):
+        return fall[world[self.x][self.y+1].id] and \
+               fall[world[self.x+1-(self.xx==0)][self.y+1].id]
+    def canclimb(self):
+        return (climb[world[self.x+1][self.y-1].id] or \
+               climb[world[self.x+1][self.y-2].id] or \
+               climb[world[self.x+1][self.y-(self.yy==0)].id] or \
+               climb[world[self.x][self.y-1].id] or \
+               climb[world[self.x][self.y-2].id] or \
+               climb[world[self.x][self.y-(self.yy==0)].id]) and \
+               self.canjump()
+    def isdel(self):
+        return self.heart<=0
+    def delled(self):
+        entities.append(Dropped(self.x,self.y,58))
+    def getfreeze(self):
+        return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
 noise=PerlinNoise()
 worldname='test.world'
@@ -1086,12 +1194,13 @@ def init():
     global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
            cholist,chol,entities,enum,world,width,height,worlds,chopped,needkotb,\
            dheights,biomes,respawnx,respawny,lworld,dworld,lentities,dentities,\
-           isdark
+           isdark,freezing
     ismainmenu=True
     ischoosing=False
     iscrafting=False
     istooling=False
     toolstep=-1
+    freezing=False
     isdead=False
     curchoi=0
     curchoi2=0
@@ -1102,11 +1211,11 @@ def init():
     respawny=110
     needkotb=False
     enum=[]
-    for i in range(10):
+    for i in range(11):
         enum.append(0)
     entities=[Player()]
     lentities=list(entities)
-    dentities=[]
+    dentities=list(entities)
     world=[]
     lworld=[]
     dworld=[]
@@ -1144,9 +1253,9 @@ iimages=[]
 timages=[]
 eimages=[]
 limages=[]
-for i in range(48):
+for i in range(49):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(57):
+for i in range(59):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -1179,6 +1288,9 @@ eimages.append([[],[]])
 for i in range(4):
     eimages[9][0].append(pgt.image.load('imgs/entities/9/l/'+str(i)+'.png'))
     eimages[9][1].append(pgt.image.load('imgs/entities/9/r/'+str(i)+'.png'))
+eimages.append([])
+eimages[10].append(pgt.image.load('imgs/entities/10/l.png'))
+eimages[10].append(pgt.image.load('imgs/entities/10/r.png'))
 for i in range(9):
     limages.append(pgt.image.load('imgs/light/'+str(i)+'.png'))
 
@@ -1189,32 +1301,35 @@ fall=[True,False,False,True,True,True,False,True,False,
       True,True,True,True,False,False,True,False,False,False,
       True,False,True,True,True,True,True,True,False,True,
       True,True,True,True,True,True,True,True,False,True,
-      True,True,True,True,True,True,True,False,True]
+      True,True,True,True,True,True,True,False,True,True]
 climb=[False,False,False,True,False,False,False,False,False,
        False,False,False,False,False,False,False,False,
        False,False,False,False,False,False,True,False,
        False,False,False,False,True,True,False,True,
        True,False,False,False,False,True,False,False,False,
-       False,False,False,False,False,False]
+       False,False,False,False,False,False,True]
 drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
       36,37,0,3,38,39,40,41,0,0,0,44,3,0,45,46,47,0,0,
-      0,0,0,0,0,0,0,50,56]
+      0,0,0,0,0,0,0,50,56,57]
 light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
-       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+       0]
 canlit=[True,False,False,False,True,True,False,False,False,
         True,False,True,True,False,False,True,True,False,False,
         True,False,False,True,False,True,True,True,True,True,
         True,True,True,True,True,True,True,True,True,True,
-        True,True,True,True,True,True,True,True,False,False]
+        True,True,True,True,True,True,True,True,False,False,
+        True]
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
-     30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47]
+     30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47,
+     48,0]
 diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,0,2,#雪块(line.2,col.6)：铲子
         0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
-        ,10000,10000,10000,10000,3,0]
+        ,10000,10000,10000,10000,3,10000,0]
 digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,0,2,
          0,0,0,0,0,0,2,2,2,0,0,2,0,0,0,1,1,1,1,1,1,1,1,1,
-         1,0]
+         1,0,0]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
@@ -1224,7 +1339,8 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '沙子','仙人掌','松果','雪球','蕨','雪块','铁苹果',
        '棉花种子','可可','粉色郁金香','橘黄郁金香','玫瑰',
        '空木桶','水桶','未打磨的玛瑙','羽毛','彩虹羽毛',
-       '岩石雕塑','云巅皇冠','生猪肉','暗夜祭坛']
+       '岩石雕塑','云巅皇冠','生猪肉','暗夜祭坛','攀爬绳',
+       '腐烂的脑子']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -1233,10 +1349,11 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            26:((20,1),(24,1)),28:((8,1),(27,1)),29:((20,1),(27,1)),
            30:((14,1),(2,1)),31:((2,512),),33:((32,8),),32:((33,1),),
            34:((15,1),(35,1)),35:((19,2),),41:((39,8),),42:((4,1),(5,1)),
-           43:((18,1),),48:((3,1),),56:((52,1),(53,1),(54,1))}
-cancraft=[0,0,2,7,19,35,43,34,41,42,6,13,56,48,8,9,10,16,25,28,20,
+           43:((18,1),),48:((3,1),),56:((52,1),(53,1),(54,1)),
+           57:((19,2),)}
+cancraft=[0,0,2,7,19,57,35,43,34,41,42,6,13,56,48,8,9,10,16,25,28,20,
           21,22,23,26,29,14,15,30,31,33,32,0,0]
-cancraftnum=[0,0,1,2,2,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
+cancraftnum=[0,0,1,2,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
              1,1,1,1,1,1,1,1,1,1,8,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
@@ -1265,7 +1382,7 @@ def worldgnr():
                 dworld[i].append(Block(13,i,j))
             elif noise([i/4+1025,j/4+1025])<-0.425:
                 dworld[i].append(Block(14,i,j))
-            elif noise([i/4+2050,j/4+2050])>0.425:
+            elif noise([i/4+2050,j/4+2050])>0.45:
                 dworld[i].append(Block(46,i,j))
             else:
                 dworld[i].append(Block(2,i,j))
@@ -1434,6 +1551,8 @@ def worldgnr():
     print(biomes)
 
 def freeze(dt):
+    global lentities,lworld,dentities,dworld,world,entities,freezing
+    freezing=True
     if ismainmenu or ischoosing:
         return
     with open('world/'+worldname,'w') as f:
@@ -1448,6 +1567,12 @@ def freeze(dt):
         f.write(str(entities[0].hunger)+'\n')
         f.write(str(isdark)+'\n')
         f.write(str(len(lentities))+'\n')
+        if isdark:
+            dentities=list(entities)
+            world=list(world)
+        else:
+            lentities=list(entities)
+            lworld=list(world)
         for i in range(len(lentities)):
             f.write(lentities[i].getfreeze())
             f.write('\n')
@@ -1476,6 +1601,7 @@ def freeze(dt):
             for j in range(height):
                 f.write(str(dworld[i][j].id)+' ')
             f.write('\n')
+    freezing=False
 
 def readworld():
     global chopped,respawnx,respawny,biomes,lworld,dworld,world,\
@@ -1526,6 +1652,9 @@ def readworld():
                 elif curs[0]==9:
                     entities.append(Pig(curs[1],curs[2]))
                     entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==10:
+                    entities.append(Zombie(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
             for i in range(8):
                 linee=f.readline().strip().split(' ')
                 for j in range(6):
@@ -1555,30 +1684,33 @@ def readworld():
                 for i in range(len(curs)):
                     curs[i]=int(curs[i])
                 if curs[0]==1:
-                    entities.append(Dropped(curs[2],curs[3],curs[1]))
+                    dentities.append(Dropped(curs[2],curs[3],curs[1]))
                 elif curs[0]==2:
-                    entities.append(Bird(curs[1],curs[2]))
-                    entities[len(entities)-1].heart=curs[3]
+                    dentities.append(Bird(curs[1],curs[2]))
+                    dentities[len(dentities)-1].heart=curs[3]
                     enum[2]+=1
                 elif curs[0]==3:
-                    entities.append(DroppedTool(curs[3],curs[4],curs[1],curs[2],curs[5],curs[6],curs[7]))
+                    dentities.append(DroppedTool(curs[3],curs[4],curs[1],curs[2],curs[5],curs[6],curs[7]))
                 elif curs[0]==4:
-                    entities.append(KingOTBirds(curs[1],curs[2]))
-                    entities[len(entities)-1].heart=curs[3]
+                    dentities.append(KingOTBirds(curs[1],curs[2]))
+                    dentities[len(dentities)-1].heart=curs[3]
                 elif curs[0]==5:
-                    entities.append(AngryBird(curs[1],curs[2]))
-                    entities[len(entities)-1].heart=curs[3]
+                    dentities.append(AngryBird(curs[1],curs[2]))
+                    dentities[len(dentities)-1].heart=curs[3]
                 elif curs[0]==6:
-                    entities.append(Fireball(curs[1],curs[2],curs[3],curs[4]))
+                    dentities.append(Fireball(curs[1],curs[2],curs[3],curs[4]))
                 elif curs[0]==7:
-                    entities.append(SonOTRocks(curs[1],curs[2]))
-                    entities[len(entities)-1].heart=curs[3]
+                    dentities.append(SonOTRocks(curs[1],curs[2]))
+                    dentities[len(dentities)-1].heart=curs[3]
                 elif curs[0]==8:
-                    entities.append(QueenOTClouds(curs[1],curs[2]))
-                    entities[len(entities)-1].heart=curs[3]
+                    dentities.append(QueenOTClouds(curs[1],curs[2]))
+                    dentities[len(dentities)-1].heart=curs[3]
                 elif curs[0]==9:
-                    entities.append(Pig(curs[1],curs[2]))
-                    entities[len(entities)-1].heart=curs[3]
+                    dentities.append(Pig(curs[1],curs[2]))
+                    dentities[len(dentities)-1].heart=curs[3]
+                elif curs[0]==10:
+                    dentities.append(Zombie(curs[1],curs[2]))
+                    dentities[len(dentities)-1].heart=curs[3]
             for i in range(width):
                 linee=f.readline().strip().split(' ')
                 dworld.append([])
@@ -1588,6 +1720,7 @@ def readworld():
     if tsisdark:
         jtblock=Block(47,2,2)
         jtblock.use(2,2)
+        isdark=True
 
 @window.event
 def on_key_press(symbol,modifiers):
@@ -1896,7 +2029,6 @@ def on_draw():
     bg=pgt.shapes.Rectangle(
         x=0,y=0,width=1024,height=576,color=(128,255,255))
     bg.draw()
-    fps_display.draw()
 
     blocksp=[]
     blbatch=pgt.graphics.Batch()
@@ -2027,69 +2159,80 @@ def on_draw():
                 x=966,y=512-i*34,
                 batch=guibatch))
     guibatch.draw()
+    fps_display.draw()
 
 def update(dt):
     global chopped,needkotb
     if ismainmenu or ischoosing or isdead:
         return
     dct=0
-    if not isdark:
-        if random()<0.02:
-            if random()>0.5:
-                newx=int(random()*32+32)+entities[0].x
-            else:
-                newx=int(random()*32+32)*-1+entities[0].x
-            if random()>0.5:
-                newy=int(random()*32+32)+entities[0].y-10
-            else:
-                newy=int(random()*32+32)*-1+entities[0].y-10
-            if newx>0 and newx<1024 and newy>0 and newy<256:
+    if not freezing:
+        if not isdark:
+            if random()<0.02:
+                if random()>0.5:
+                    newx=int(random()*32+32)+entities[0].x
+                else:
+                    newx=int(random()*32+32)*-1+entities[0].x
+                if random()>0.5:
+                    newy=int(random()*32+32)+entities[0].y-10
+                else:
+                    newy=int(random()*32+32)*-1+entities[0].y-10
+                if newx>0 and newx<1024 and newy>0 and newy<256:
+                    if fall[world[newx][newy].id] and \
+                       newy<dheights[newx] and enum[2]<100:
+                        entities.append(Bird(newx,newy))
+            if random()<0.005:
+                if random()>0.5:
+                    newx=int(random()*32+32)+entities[0].x
+                else:
+                    newx=int(random()*32+32)*-1+entities[0].x
+                if newx>0 and newx<1024 and enum[9]<100 and \
+                   biomes[newx//128] in (4,0):
+                    newy=dheights[newx]-1
+                    if fall[world[newx][newy].id] and fall[world[newx][newy-1].id]:
+                        entities.append(Pig(newx,newy))
+        else:
+            if random()<0.01 and enum[10]<15:
+                if random()>0.5:
+                    newx=int(random()*32+32)+entities[0].x
+                else:
+                    newx=int(random()*32+32)*-1+entities[0].x
+                newy=int(random()*32+32)+entities[0].y
+                if newx>0 and newx<1024 and newy>0 and newy<256:
+                    entities.append(Zombie(newx,newy))
+        if chopped>=100:
+            for i in range(100):
+                if random()>0.5:
+                    newx=int(random()*24+32)+entities[0].x
+                else:
+                    newx=int(random()*24+32)*-1+entities[0].x
+                if random()>0.5:
+                    newy=int(random()*20+32)+entities[0].y-10
+                else:
+                    newy=int(random()*20+32)*-1+entities[0].y-10
                 if fall[world[newx][newy].id] and \
-                   newy<dheights[newx] and enum[2]<100:
-                    entities.append(Bird(newx,newy))
-                    enum[2]+=1
-        if random()<0.005:
-            if random()>0.5:
-                newx=int(random()*32+32)+entities[0].x
-            else:
-                newx=int(random()*32+32)*-1+entities[0].x
-            if newx>0 and newx<1024 and enum[9]<100 and \
-               biomes[newx//128] in (4,0):
-                newy=dheights[newx]-1
-                if fall[world[newx][newy].id] and fall[world[newx][newy-1].id]:
-                    entities.append(Pig(newx,newy))
-    if chopped>=100:
-        for i in range(100):
-            if random()>0.5:
-                newx=int(random()*24+32)+entities[0].x
-            else:
-                newx=int(random()*24+32)*-1+entities[0].x
-            if random()>0.5:
-                newy=int(random()*20+32)+entities[0].y-10
-            else:
-                newy=int(random()*20+32)*-1+entities[0].y-10
-            if fall[world[newx][newy].id] and \
-               newy<int(noise(newx/32)*28)+114:
-                entities.append(AngryBird(newx,newy))
-        chopped=0
-    if enum[5]>0:
-        needkotb=True
-    if enum[5]==0 and needkotb:
-        entities.append(KingOTBirds(entities[0].x,entities[0].y-2))
-        needkotb=False
-    for i in range(len(entities)):
-        if abs(entities[0].x-entities[i-dct].x)<=64 and \
-           abs(entities[0].y-entities[i-dct].y)<=64:
-            entities[i-dct].update(dt)
-            if entities[i-dct].isdel():
-                entities[i-dct].delled()
-                entities.pop(i-dct)
-                dct+=1
-                enum[entities[i-dct].id]-=1
-    for i in range(34):
-        for j in range(22):
-            world[i+entities[0].x-hconst][j+entities[0].y-wconst].update(
-                i+entities[0].x-hconst,j+entities[0].y-wconst)
+                   newy<int(noise(newx/32)*28)+114:
+                    entities.append(AngryBird(newx,newy))
+            chopped=0
+        if enum[5]>0:
+            needkotb=True
+        if enum[5]==0 and needkotb:
+            entities.append(KingOTBirds(entities[0].x,entities[0].y-2))
+            needkotb=False
+        for i in range(len(entities)):
+            if abs(entities[0].x-entities[i-dct].x)<=64 and \
+               abs(entities[0].y-entities[i-dct].y)<=64 and \
+               (entities[i-dct].id!=1 or abs(entities[0].y-entities[i-dct].y)<=10):
+                entities[i-dct].update(dt)
+                if entities[i-dct].isdel():
+                    entities[i-dct].delled()
+                    entities.pop(i-dct)
+                    dct+=1
+                    enum[entities[i-dct].id]-=1
+        for i in range(34):
+            for j in range(22):
+                world[i+entities[0].x-hconst][j+entities[0].y-wconst].update(
+                    i+entities[0].x-hconst,j+entities[0].y-wconst)
 
 init()
 
