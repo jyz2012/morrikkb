@@ -173,12 +173,13 @@ class Item():
         self.tid=0
         self.lastdmg=0
     def use(self):
-        global respawnx,respawny
+        global respawnx,respawny,manao
         if self.id==3:
-            if entities[0].badd(6,1):
-                self.cnt-=1
-                if self.cnt==0:
-                    self.id=0
+            if not entities[0].badd(6,1):
+                entities.append(Dropped(entities[0].x,entities[0].y,6))
+            self.cnt-=1
+            if self.cnt==0:
+                self.id=0
         elif self.id==4:
             entities[0].hungrier(-4)
             entities[0].hurt(-4)
@@ -205,6 +206,36 @@ class Item():
                     self.id=0
                 if not entities[0].badd(48,1):
                     entities.append(Dropped(entities[0].x,entities[0].y,48))
+        elif self.id==50:
+            chid=59
+            summ=0
+            for i in manao:
+                if i:
+                    summ+=1
+                else:
+                    summ+=8
+            mrnd=random()
+            curin=0
+            for i in range(7):
+                if not manao[i]:
+                    curin+=8
+                else:
+                    curin+=1
+                if mrnd<curin/summ:
+                    chid=i+59
+                    print(mrnd,curin)
+                    break
+            if not entities[0].badd(chid,1):
+                entities.append(Dropped(entities[0].x,entities[0].y,chid))
+            self.cnt-=1
+            if self.cnt==0:
+                self.id=0
+        elif self.id==55:
+            entities[0].hungrier(-7)
+            entities[0].hurt(-6)
+            self.cnt-=1
+            if self.cnt==0:
+                self.id=0
         elif self.id==58:
             entities[0].hurt(4)
             self.cnt-=1
@@ -1119,30 +1150,36 @@ class Zombie(Entity):
                     if self.canleft():
                         self.move(-1,0)
                     else:
-                        if drop[world[self.x+1][self.y-1].id] not in (0,56):
-                            entities.append(Dropped(self.x+1,self.y-1,drop[world[self.x+1][self.y-1].id]))
-                        world[self.x+1][self.y-1]=Block(0,self.x+1,self.y-1)
-                        if drop[world[self.x+1][self.y-2+(self.yy==0)].id] not in (0,56):
-                            entities.append(Dropped(self.x+1,self.y-2+(self.yy==0),drop[world[self.x+1][self.y-2+(self.yy==0)].id]))
-                        world[self.x+1][self.y-2+(self.yy==0)]=Block(0,self.x+1,self.y-2+(self.yy==0))
-                        if drop[world[self.x+1][self.y].id] not in (0,56):
-                            entities.append(Dropped(self.x+1,self.y,drop[world[self.x+1][self.y].id]))
-                        world[self.x+1][self.y]=Block(0,self.x+1,self.y)
+                        if drop[world[self.x+1][self.y-1].id]!=56:
+                            if drop[world[self.x+1][self.y-1].id] not in (0,56):
+                                entities.append(Dropped(self.x+1,self.y-1,drop[world[self.x+1][self.y-1].id]))
+                            world[self.x+1][self.y-1]=Block(0,self.x+1,self.y-1)
+                        if drop[self.x+1][self.y-2+(self.yy==0)]!=56:
+                            if drop[world[self.x+1][self.y-2+(self.yy==0)].id] not in (0,56):
+                                entities.append(Dropped(self.x+1,self.y-2+(self.yy==0),drop[world[self.x+1][self.y-2+(self.yy==0)].id]))
+                            world[self.x+1][self.y-2+(self.yy==0)]=Block(0,self.x+1,self.y-2+(self.yy==0))
+                        if drop[world[self.x+1][self.y].id]!=56:
+                            if drop[world[self.x+1][self.y].id] not in (0,56):
+                                entities.append(Dropped(self.x+1,self.y,drop[world[self.x+1][self.y].id]))
+                            world[self.x+1][self.y]=Block(0,self.x+1,self.y)
                 self.lastleft=True
             else:
                 for i in range(int(dt*56)):
                     if self.canright():
                         self.move(1,0)
                     else:
-                        if drop[world[self.x-(self.xx==0)][self.y-1].id] not in (0,56):
-                            entities.append(Dropped(self.x-(self.xx==0),self.y-1,drop[world[self.x-(self.xx==0)][self.y-1].id]))
-                        world[self.x-(self.xx==0)][self.y-1]=Block(0,self.x-(self.xx==0),self.y-1)
-                        if drop[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id] not in (0,56):
-                            entities.append(Dropped(self.x-(self.xx==0),self.y-2+(self.yy==0),drop[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id]))
-                        world[self.x-(self.xx==0)][self.y-2+(self.yy==0)]=Block(0,self.x-(self.xx==0),self.y-2+(self.yy==0))
-                        if drop[world[self.x-(self.xx==0)][self.y].id] not in (0,56):
-                            entities.append(Dropped(self.x-(self.xx==0),self.y,drop[world[self.x-(self.xx==0)][self.y].id]))
-                        world[self.x-(self.xx==0)][self.y]=Block(0,self.x-(self.xx==0),self.y)
+                        if drop[world[self.x-(self.xx==0)][self.y-1].id]!=56:
+                            if drop[world[self.x-(self.xx==0)][self.y-1].id] not in (0,56):
+                                entities.append(Dropped(self.x-(self.xx==0),self.y-1,drop[world[self.x-(self.xx==0)][self.y-1].id]))
+                            world[self.x-(self.xx==0)][self.y-1]=Block(0,self.x-(self.xx==0),self.y-1)
+                        if drop[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id]!=56:
+                            if drop[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id] not in (0,56):
+                                entities.append(Dropped(self.x-(self.xx==0),self.y-2+(self.yy==0),drop[world[self.x-(self.xx==0)][self.y-2+(self.yy==0)].id]))
+                            world[self.x-(self.xx==0)][self.y-2+(self.yy==0)]=Block(0,self.x-(self.xx==0),self.y-2+(self.yy==0))
+                        if drop[world[self.x-(self.xx==0)][self.y].id]!=56:
+                            if drop[world[self.x-(self.xx==0)][self.y].id] not in (0,56):
+                                entities.append(Dropped(self.x-(self.xx==0),self.y,drop[world[self.x-(self.xx==0)][self.y].id]))
+                            world[self.x-(self.xx==0)][self.y]=Block(0,self.x-(self.xx==0),self.y)
                 self.lastleft=False
         if self.y<entities[0].y-1:
             if drop[world[self.x][self.y+1].id] not in (0,56):
@@ -1194,7 +1231,7 @@ def init():
     global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
            cholist,chol,entities,enum,world,width,height,worlds,chopped,needkotb,\
            dheights,biomes,respawnx,respawny,lworld,dworld,lentities,dentities,\
-           isdark,freezing
+           isdark,freezing,manao
     ismainmenu=True
     ischoosing=False
     iscrafting=False
@@ -1207,6 +1244,7 @@ def init():
     cholist=[]
     chol=[]
     chopped=0
+    manao=[False,False,False,False,False,False,False]
     respawnx=512
     respawny=110
     needkotb=False
@@ -1255,7 +1293,7 @@ eimages=[]
 limages=[]
 for i in range(49):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(59):
+for i in range(68):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -1323,7 +1361,7 @@ canlit=[True,False,False,False,True,True,False,False,False,
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
      30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47,
-     48,0]
+     48,0,0,0,0,0,0,0,0,0,0]
 diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,0,2,#雪块(line.2,col.6)：铲子
         0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
         ,10000,10000,10000,10000,3,10000,0]
@@ -1340,7 +1378,8 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '棉花种子','可可','粉色郁金香','橘黄郁金香','玫瑰',
        '空木桶','水桶','未打磨的玛瑙','羽毛','彩虹羽毛',
        '岩石雕塑','云巅皇冠','生猪肉','暗夜祭坛','攀爬绳',
-       '腐烂的脑子']
+       '腐烂的脑子','红色玛瑙','橙色玛瑙','黄色玛瑙','绿色玛瑙',
+       '蓝色玛瑙','紫色玛瑙','黑色玛瑙','七彩玛瑙','死亡玛瑙']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -1350,10 +1389,11 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            30:((14,1),(2,1)),31:((2,512),),33:((32,8),),32:((33,1),),
            34:((15,1),(35,1)),35:((19,2),),41:((39,8),),42:((4,1),(5,1)),
            43:((18,1),),48:((3,1),),56:((52,1),(53,1),(54,1)),
-           57:((19,2),)}
-cancraft=[0,0,2,7,19,57,35,43,34,41,42,6,13,56,48,8,9,10,16,25,28,20,
+           57:((19,2),),66:((59,1),(60,1),(61,1),(62,1),(63,1),(64,1),(65,1)),
+           67:((66,1),(58,1))}
+cancraft=[0,0,2,7,19,57,35,43,34,41,42,6,13,56,66,67,48,8,9,10,16,25,28,20,
           21,22,23,26,29,14,15,30,31,33,32,0,0]
-cancraftnum=[0,0,1,2,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
+cancraftnum=[0,0,1,2,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
              1,1,1,1,1,1,1,1,1,1,8,0,0]
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
@@ -1555,60 +1595,69 @@ def freeze(dt):
     freezing=True
     if ismainmenu or ischoosing:
         return
-    with open('world/'+worldname,'w') as f:
-        f.write(str(chopped)+'\n')
-        f.write(str(respawnx)+' '+str(respawny)+'\n')
-        for i in biomes:
-            f.write(str(i)+' ')
-        f.write('\n')
-        f.write(str(entities[0].x)+'\n')
-        f.write(str(entities[0].y)+'\n')
-        f.write(str(entities[0].heart)+'\n')
-        f.write(str(entities[0].hunger)+'\n')
-        f.write(str(isdark)+'\n')
-        f.write(str(len(lentities))+'\n')
-        if isdark:
-            dentities=list(entities)
-            world=list(world)
-        else:
-            lentities=list(entities)
-            lworld=list(world)
-        for i in range(len(lentities)):
-            f.write(lentities[i].getfreeze())
+    try:
+        with open('world/'+worldname,'w') as f:
+            f.write(str(chopped)+'\n')
+            for i in manao:
+                f.write(str(i)+' ')
             f.write('\n')
-        for i in range(8):
-            for j in range(6):
-                f.write(str(entities[0].backpack[i][j].id)+' ')
-                if entities[0].backpack[i][j].id!=12:
-                    f.write(str(entities[0].backpack[i][j].cnt)+' ')
-                else:
-                    f.write(str(entities[0].backpack[i][j].tid)+'^')
-                    f.write(str(entities[0].backpack[i][j].first)+'^')
-                    f.write(str(entities[0].backpack[i][j].second)+'^')
-                    f.write(str(entities[0].backpack[i][j].canuse)+'^')
-                    f.write(str(entities[0].backpack[i][j].damage)+' ')
+            f.write(str(respawnx)+' '+str(respawny)+'\n')
+            for i in biomes:
+                f.write(str(i)+' ')
             f.write('\n')
-        for i in range(width):
-            for j in range(height):
-                f.write(str(lworld[i][j].id)+' ')
-            f.write(str(dheights[i]))
-            f.write('\n')
-        f.write(str(len(dentities))+'\n')
-        for i in range(len(dentities)):
-            f.write(dentities[i].getfreeze())
-            f.write('\n')
-        for i in range(width):
-            for j in range(height):
-                f.write(str(dworld[i][j].id)+' ')
-            f.write('\n')
+            f.write(str(entities[0].x)+'\n')
+            f.write(str(entities[0].y)+'\n')
+            f.write(str(entities[0].heart)+'\n')
+            f.write(str(entities[0].hunger)+'\n')
+            f.write(str(isdark)+'\n')
+            f.write(str(len(lentities))+'\n')
+            if isdark:
+                dentities=list(entities)
+                world=list(world)
+            else:
+                lentities=list(entities)
+                lworld=list(world)
+            for i in range(len(lentities)):
+                f.write(lentities[i].getfreeze())
+                f.write('\n')
+            for i in range(8):
+                for j in range(6):
+                    f.write(str(entities[0].backpack[i][j].id)+' ')
+                    if entities[0].backpack[i][j].id!=12:
+                        f.write(str(entities[0].backpack[i][j].cnt)+' ')
+                    else:
+                        f.write(str(entities[0].backpack[i][j].tid)+'^')
+                        f.write(str(entities[0].backpack[i][j].first)+'^')
+                        f.write(str(entities[0].backpack[i][j].second)+'^')
+                        f.write(str(entities[0].backpack[i][j].canuse)+'^')
+                        f.write(str(entities[0].backpack[i][j].damage)+' ')
+                f.write('\n')
+            for i in range(width):
+                for j in range(height):
+                    f.write(str(lworld[i][j].id)+' ')
+                f.write(str(dheights[i]))
+                f.write('\n')
+            f.write(str(len(dentities))+'\n')
+            for i in range(len(dentities)):
+                f.write(dentities[i].getfreeze())
+                f.write('\n')
+            for i in range(width):
+                for j in range(height):
+                    f.write(str(dworld[i][j].id)+' ')
+                f.write('\n')
+    except:
+        freeze(dt)
     freezing=False
 
 def readworld():
     global chopped,respawnx,respawny,biomes,lworld,dworld,world,\
-           entities,lentities,dentities,isdark
+           entities,lentities,dentities,isdark,manao
     if exists('world/'+worldname):
         with open('world/'+worldname,'r') as f:
             chopped=int(f.readline().strip())
+            manaol=f.readline().strip().split(' ')
+            for i in range(7):
+                manao[i]=bool(manaol[i]=='True')
             respawnx,respawny=f.readline().strip().split(' ')
             respawnx=int(respawnx)
             respawny=int(respawny)
@@ -2197,7 +2246,7 @@ def update(dt):
                     newx=int(random()*32+32)+entities[0].x
                 else:
                     newx=int(random()*32+32)*-1+entities[0].x
-                newy=int(random()*32+32)+entities[0].y
+                newy=int(random()*32+32)*-1+entities[0].y
                 if newx>0 and newx<1024 and newy>0 and newy<256:
                     entities.append(Zombie(newx,newy))
         if chopped>=100:
