@@ -10,7 +10,7 @@ class Block():
     def __init__(self,cid,x,y):
         global dheights
         self.id=cid
-        if not self.id in (0,4,5,9,11,12,22,24,25,26,28,29,30,\
+        if not self.id in (0,4,5,9,11,12,15,16,22,24,25,26,28,29,30,\
                            31,33,34,35,36,39,40,41,42,43,44,45):
             self.clight=light[self.id]
         else:
@@ -241,6 +241,19 @@ class Item():
             self.cnt-=1
             if self.cnt==0:
                 self.id=0
+        elif self.id==67:
+            if (not isdark) and entities[0].y<80:
+                entities.append(DeathGod(entities[0].x,entities[0].y))
+                self.cnt-=1
+                if self.cnt==0:
+                    self.id=0
+        elif self.id==68:
+            dct=0
+            for i in range(len(entities)):
+                if not entities[i-dct].id in (0,1,2):
+                    entities[i].delled()
+                    del entities[i-dct]
+                    dct+=1
 
 class Tool():
     def __init__(self,ctid,cfirst,csecond):
@@ -813,7 +826,7 @@ class KingOTBirds(Entity):
     def candown(self):
         return fall[world[self.x][self.y+1].id] and fall[world[self.x-1][self.y+1].id]
     def isdel(self):
-        return self.heart<=0
+        return self.heart<=0 or final
     def delled(self):
         entities.append(Dropped(self.x,self.y,52))
     def getfreeze(self):
@@ -868,7 +881,7 @@ class Fireball(Shooted):
         self.boomed2=False
     def draw(self,batch):
         sp=pgt.sprite.Sprite(
-                    img=eimages[6][int(self.flick)],
+                    img=eimages[6][int(self.flick)%5],
                     x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
                     y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
                     batch=batch
@@ -903,7 +916,7 @@ class Fireball(Shooted):
                         self.move(0,1)
         for i in entities:
             if i.dis(self.x,self.y)<=3 and i.id!=6 and i.id!=4 \
-               and i.id!=3 and i.id!=1 and i.id!=7:
+               and i.id!=3 and i.id!=1 and i.id!=7 and i.id!=11:
                 self.boomed=True
         self.boomed=self.boomed or (self.towardx>0 and not self.canleft()) or \
                (self.towardx<0 and not self.canright()) or \
@@ -914,7 +927,7 @@ class Fireball(Shooted):
         return self.boomed2
     def delled(self):
         for i in entities:
-            if i.dis(self.x,self.y)<=3 and i.id!=4 and i.id!=7:
+            if i.dis(self.x,self.y)<=3 and i.id!=4 and i.id!=7 and i.id!=11:
                 i.hurt(4)
         for i in range(-3,3):
             for j in range(-3,3):
@@ -998,7 +1011,7 @@ class SonOTRocks(Entity):
         return (fall[world[self.x][self.y+1].id] or world[self.x][self.y+1].id==2) and \
                (fall[world[self.x-1][self.y+1].id] or world[self.x-1][self.y+1].id==2)
     def isdel(self):
-        return self.heart<=0
+        return self.heart<=0 or final
     def delled(self):
         entities.append(Dropped(self.x,self.y,53))
     def getfreeze(self):
@@ -1224,6 +1237,67 @@ class Zombie(Entity):
     def getfreeze(self):
         return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
 
+class DeathGod(Entity):
+    def __init__(self,cx,cy):
+        super().__init__(cx,cy,0,0,11,250,1,4,4)
+        self.dtsum=0
+        self.flick=0
+        self.toward=randint(1,2)
+        self.lastdt=0
+        self.dttime=0
+        self.heart=200
+    def draw(self,batch):
+        sp=pgt.sprite.Sprite(
+                    img=eimages[11][0],
+                    x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                    y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                    batch=batch
+                    )
+        sp.draw()
+        if self.ishurten:
+            redr=pgt.shapes.Rectangle(x=(entities[0].x-self.x)*32+512+int(entities[0].xx)+self.xx,
+                                      y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
+                                      width=128,height=128,
+                                      color=(255,0,0,128))
+            redr.draw()
+            self.ishurten=False
+    def update(self,dt):
+        global respawnx,respawny
+        if self.toward==1:
+            for i in range(int(62*dt)):
+                self.move(1,0)
+        elif self.toward==2:
+            for i in range(int(62*dt)):
+                self.move(-1,0)
+        self.dtsum+=dt
+        if self.dtsum>=7:
+            self.toward=randint(1,2)
+        if self.dtsum>=8:
+            self.dtsum=0
+        if self.heart>0:
+            self.heart+=int(dt*7)
+            if self.heart>self.mxheart:
+                self.heart=self.mxheart
+        if time()-self.dttime>90:
+            self.dttime=time()
+            rnd=random()
+            if rnd<0.5:
+                entities.append(SonOTRocks(self.x,self.y))
+            else:
+                entities.append(KingOTBirds(self.x,self.y))
+        respawnx=self.x
+        respawny=self.y
+    def isdel(self):
+        return self.heart<=0
+    def delled(self):
+        global final,fin,finalpoem,playtm
+        final=True
+        fin=0
+        entities.append(Dropped(self.x,self.y,68))
+        finalpoem[3]=finalpoem[3].replace('_',str(int(playtm)))
+    def getfreeze(self):
+        return str(self.id)+' '+str(self.x)+' '+str(self.y)+' '+str(self.heart)
+
 noise=PerlinNoise()
 worldname='test.world'
 
@@ -1231,12 +1305,16 @@ def init():
     global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
            cholist,chol,entities,enum,world,width,height,worlds,chopped,needkotb,\
            dheights,biomes,respawnx,respawny,lworld,dworld,lentities,dentities,\
-           isdark,freezing,manao
+           isdark,freezing,manao,final,fin,age,playtm
+    playtm=0
     ismainmenu=True
     ischoosing=False
     iscrafting=False
     istooling=False
     toolstep=-1
+    final=False
+    fin=0
+    age=0
     freezing=False
     isdead=False
     curchoi=0
@@ -1249,7 +1327,7 @@ def init():
     respawny=110
     needkotb=False
     enum=[]
-    for i in range(11):
+    for i in range(12):
         enum.append(0)
     entities=[Player()]
     lentities=list(entities)
@@ -1293,7 +1371,7 @@ eimages=[]
 limages=[]
 for i in range(49):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(68):
+for i in range(69):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(3):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -1329,6 +1407,8 @@ for i in range(4):
 eimages.append([])
 eimages[10].append(pgt.image.load('imgs/entities/10/l.png'))
 eimages[10].append(pgt.image.load('imgs/entities/10/r.png'))
+eimages.append([])
+eimages[11].append(pgt.image.load('imgs/entities/11/0.png'))
 for i in range(9):
     limages.append(pgt.image.load('imgs/light/'+str(i)+'.png'))
 
@@ -1361,7 +1441,7 @@ canlit=[True,False,False,False,True,True,False,False,False,
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
      30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47,
-     48,0,0,0,0,0,0,0,0,0,0]
+     48,0,0,0,0,0,0,0,0,0,0,0]
 diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,0,2,#雪块(line.2,col.6)：铲子
         0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
         ,10000,10000,10000,10000,3,10000,0]
@@ -1379,7 +1459,8 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '空木桶','水桶','未打磨的玛瑙','羽毛','彩虹羽毛',
        '岩石雕塑','云巅皇冠','生猪肉','暗夜祭坛','攀爬绳',
        '腐烂的脑子','红色玛瑙','橙色玛瑙','黄色玛瑙','绿色玛瑙',
-       '蓝色玛瑙','紫色玛瑙','黑色玛瑙','七彩玛瑙','死亡玛瑙']
+       '蓝色玛瑙','紫色玛瑙','黑色玛瑙','七彩玛瑙','死亡玛瑙',
+       '最终权杖']
 tname=[' ','镐子','锄头']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -1398,6 +1479,33 @@ cancraftnum=[0,0,1,2,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 tooltype=[0,0,1,2,0,0]
 toolneed={1:(0,1),2:(2,1)}
 toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
+finalpoem=[
+    '你好',
+    '这个游戏的主线就这样结束了',
+    '我想给你看个东西......',
+    '你总共在这个存档里度过了_秒',
+    '',
+    '很震撼，不是吗？',
+    '但是......',
+    '首先，你多少岁了？',
+    '_',
+    '好的。',
+    '那么这个存档里度过的时间仅相当于你度过的生命的_%',
+    '',
+    '假如你只活60岁，',
+    '那么在这个存档里你度过的时间仅相当于你生命的_%',
+    '如果你想让你玩这个游戏的时间达到你生命的1%，',
+    '也需要玩_次这个存档',
+    '',
+    '这个游戏只是你人生中的一小部分罢了',
+    '或者说，只是黄粱一梦罢了',
+    '真正的人生不在这个游戏里',
+    '真正的人生在电脑外，一个被称为\'地球\'的地方',
+    '你固然可以继续在游戏中探索',
+    '但，',
+    '这只是消磨时间罢了',
+    '去把精力投入到真正的人生里吧'
+]
 
 def worldgnr():
     global world,dheights,biomes,lworld,dworld
@@ -1598,6 +1706,7 @@ def freeze(dt):
     try:
         with open('world/'+worldname,'w') as f:
             f.write(str(chopped)+'\n')
+            f.write(str(int(playtm))+'\n')
             for i in manao:
                 f.write(str(i)+' ')
             f.write('\n')
@@ -1610,13 +1719,13 @@ def freeze(dt):
             f.write(str(entities[0].heart)+'\n')
             f.write(str(entities[0].hunger)+'\n')
             f.write(str(isdark)+'\n')
-            f.write(str(len(lentities))+'\n')
             if isdark:
                 dentities=list(entities)
                 world=list(world)
             else:
                 lentities=list(entities)
                 lworld=list(world)
+            f.write(str(len(lentities))+'\n')
             for i in range(len(lentities)):
                 f.write(lentities[i].getfreeze())
                 f.write('\n')
@@ -1651,10 +1760,11 @@ def freeze(dt):
 
 def readworld():
     global chopped,respawnx,respawny,biomes,lworld,dworld,world,\
-           entities,lentities,dentities,isdark,manao
+           entities,lentities,dentities,isdark,manao,playtm
     if exists('world/'+worldname):
         with open('world/'+worldname,'r') as f:
             chopped=int(f.readline().strip())
+            playtm=int(f.readline().strip())
             manaol=f.readline().strip().split(' ')
             for i in range(7):
                 manao[i]=bool(manaol[i]=='True')
@@ -1703,6 +1813,9 @@ def readworld():
                     entities[len(entities)-1].heart=curs[3]
                 elif curs[0]==10:
                     entities.append(Zombie(curs[1],curs[2]))
+                    entities[len(entities)-1].heart=curs[3]
+                elif curs[0]==11:
+                    entities.append(DeathGod(curs[1],curs[2]))
                     entities[len(entities)-1].heart=curs[3]
             for i in range(8):
                 linee=f.readline().strip().split(' ')
@@ -2031,7 +2144,7 @@ def on_mouse_press(x,y,button,modifiers):
 
 @window.event
 def on_draw():
-    global curchoi,worlds,isdead
+    global curchoi,worlds,isdead,fin,age
     
     window.clear()
 
@@ -2048,6 +2161,27 @@ def on_draw():
                         y=window.height//4,
                         anchor_x='center', anchor_y='center')
         starttip.draw()
+        return
+
+    if final:
+        bg=pgt.shapes.Rectangle(
+            x=0,y=0,width=1024,height=576,color=(128,255,255))
+        bg.draw()
+        if fin>=13 and age==0:
+            age=enterbox('请输入你的年龄')
+            finalpoem[8]=age
+            finalpoem[10]=finalpoem[10].replace('_',str(int(playtm/int(age)/60/60/24/365*1000000)/10000))
+            finalpoem[13]=finalpoem[13].replace('_',str(int(playtm/60/60/60/24/365*1000000)/10000))
+            finalpoem[15]=finalpoem[15].replace('_',str(int(0.01/(playtm/60/60/60/24/365))))
+        for i in range(len(finalpoem)):
+            labe=pgt.text.Label(finalpoem[i],
+                        font_name='Times New Roman',
+                        font_size=24,
+                        color=(0,0,0,255),
+                        x=window.width//2,
+                        y=fin*50-i*100+window.height//2,
+                        anchor_x='center', anchor_y='center')
+            labe.draw()
         return
 
     if ischoosing:
@@ -2211,9 +2345,16 @@ def on_draw():
     fps_display.draw()
 
 def update(dt):
-    global chopped,needkotb
-    if ismainmenu or ischoosing or isdead:
+    global chopped,needkotb,fin,final,playtm
+    if final:
+        if not ((fin>=13 and age==0)):
+            fin+=dt
+            if fin>=55:
+                final=False
+                fin=0
+    if ismainmenu or ischoosing or isdead or final:
         return
+    playtm+=dt
     dct=0
     if not freezing:
         if not isdark:
@@ -2285,6 +2426,6 @@ def update(dt):
 
 init()
 
-pgt.clock.schedule_interval(update,1/40.)
+pgt.clock.schedule_interval(update,1/12.)
 pgt.clock.schedule_interval(freeze,10)
 pgt.app.run()
