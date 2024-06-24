@@ -251,7 +251,7 @@ class Item():
             dct=0
             for i in range(len(entities)):
                 if not entities[i-dct].id in (0,1,2):
-                    entities[i].delled()
+                    entities[i-dct].delled()
                     del entities[i-dct]
                     dct+=1
 
@@ -287,6 +287,10 @@ class Tool():
             self.canuse+=128
             self.diglvl=3
             self.damage=7
+        elif self.first==70:
+            self.canuse+=512
+            self.diglvl=4
+            self.damage=9
         if self.first==21:
             self.diglvl=1
             self.canuse+=32
@@ -306,10 +310,66 @@ class Tool():
             self.canuse+=128
             self.diglvl=3
             self.damage=6
+        elif self.first==71:
+            self.canuse+=512
+            self.diglvl=4
+            self.damage=8
+        if self.first==73:
+            self.diglvl=1
+            self.canuse+=32
+        elif self.first==74:
+            self.diglvl=2
+            self.canuse+=64
+            self.damage=3
+        elif self.first==75:
+            self.diglvl=3
+            self.canuse+=128
+            self.damage=4
+        elif self.first==76:
+            self.canuse+=192
+            self.diglvl=3
+            self.damage=6
+        elif self.first==77:
+            self.canuse+=128
+            self.diglvl=3
+            self.damage=6
+        elif self.first==78:
+            self.canuse+=512
+            self.diglvl=4
+            self.damage=8
+        if self.first==84:
+            self.diglvl=0
+            self.canuse+=32
+        elif self.first==85:
+            self.diglvl=0
+            self.canuse+=64
+            self.damage=5
+        elif self.first==86:
+            self.diglvl=0
+            self.canuse+=128
+            self.damage=7
+        elif self.first==87:
+            self.canuse+=192
+            self.diglvl=0
+            self.damage=9
+        elif self.first==88:
+            self.canuse+=128
+            self.diglvl=0
+            self.damage=8
+        elif self.first==89:
+            self.canuse+=512
+            self.diglvl=0
+            self.damage=12
         if self.second==15:
             self.canuse+=8
         elif self.second==30:
             self.canuse+=16
+        if self.second==79:
+            self.canuse+=16
+        elif self.second==80:
+            self.canuse+=24
+        elif self.second==81:
+            self.canuse+=48
     def use(self,num):
         entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse-=num
         if entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse<=0:
@@ -1129,7 +1189,7 @@ class Pig(Entity):
 
 class Zombie(Entity):
     def __init__(self,cx,cy):
-        super().__init__(cx,cy,0,0,10,15,-1,1,2)
+        super().__init__(cx,cy,0,0,10,20,-1,1,2)
         self.flick=0
         self.lastleft=True
         self.lastdmg=0
@@ -1369,11 +1429,11 @@ iimages=[]
 timages=[]
 eimages=[]
 limages=[]
-for i in range(49):
+for i in range(50):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(69):
+for i in range(90):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
-for i in range(3):
+for i in range(5):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
 eimages.append([[],[],[]])
 for i in range(5):
@@ -1419,40 +1479,42 @@ fall=[True,False,False,True,True,True,False,True,False,
       True,True,True,True,False,False,True,False,False,False,
       True,False,True,True,True,True,True,True,False,True,
       True,True,True,True,True,True,True,True,False,True,
-      True,True,True,True,True,True,True,False,True,True]
+      True,True,True,True,True,True,True,False,True,True,
+      False]
 climb=[False,False,False,True,False,False,False,False,False,
        False,False,False,False,False,False,False,False,
        False,False,False,False,False,False,True,False,
        False,False,False,False,True,True,False,True,
        True,False,False,False,False,True,False,False,False,
-       False,False,False,False,False,False,True]
+       False,False,False,False,False,False,True,False]
 drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
       36,37,0,3,38,39,40,41,0,0,0,44,3,0,45,46,47,0,0,
-      0,0,0,0,0,0,0,50,56,57]
+      0,0,0,0,0,0,0,50,56,57,69]
 light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-       0]
+       0,0]
 canlit=[True,False,False,False,True,True,False,False,False,
         True,False,True,True,False,False,True,True,False,False,
         True,False,False,True,False,True,True,True,True,True,
         True,True,True,True,True,True,True,True,True,True,
         True,True,True,True,True,True,True,True,False,False,
-        True]
+        True,False]
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
      30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47,
-     48,0,0,0,0,0,0,0,0,0,0,0]
-diglvl=[0,0,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,0,2,#雪块(line.2,col.6)：铲子
-        0,0,0,0,0,0,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
-        ,10000,10000,10000,10000,3,10000,0]
-digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,0,2,
-         0,0,0,0,0,0,2,2,2,0,0,2,0,0,0,1,1,1,1,1,1,1,1,1,
-         1,0,0]
+     48,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+     0,0,0,0,0,0,0,0,0,0,0]
+diglvl=[0,1,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,1,2,
+        0,0,0,1,0,2,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
+        ,10000,10000,10000,10000,3,10000,0,3]
+digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,3,2,
+         0,0,0,3,0,3,2,2,2,0,0,2,0,0,0,1,1,1,1,1,1,1,1,1,
+         1,0,0,1]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
-       '棉花','线','锄头模板','木锄头头','石锄头头','铁锄头头',
-       '银锭','银镐头','银锄头头','金锭','金镐头','金锄头头',
+       '棉花','线','锄刃模板','木锄刃','石锄刃','铁锄刃',
+       '银锭','银镐头','银锄刃','金锭','金镐头','金锄刃',
        '石握柄','岩石之心','松散的云','云','火把','布',
        '沙子','仙人掌','松果','雪球','蕨','雪块','铁苹果',
        '棉花种子','可可','粉色郁金香','橘黄郁金香','玫瑰',
@@ -1460,8 +1522,12 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '岩石雕塑','云巅皇冠','生猪肉','暗夜祭坛','攀爬绳',
        '腐烂的脑子','红色玛瑙','橙色玛瑙','黄色玛瑙','绿色玛瑙',
        '蓝色玛瑙','紫色玛瑙','黑色玛瑙','七彩玛瑙','死亡玛瑙',
-       '最终权杖']
-tname=[' ','镐子','锄头']
+       '最终权杖','钻石','钻石镐头','钻石锄刃','铲身模板',
+       '木铲身','石铲身','铁铲身','金铲身','银铲身',
+       '钻石铲身','木剑柄','石剑柄','铁剑柄','剑柄模板',
+       '剑刃模板','木剑刃','石剑刃','铁剑刃','金剑刃','银剑刃',
+       '钻石剑刃']
+tname=[' ','镐子','锄头','铲子','剑']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
            16:((8,1),(5,1)),19:((18,1),),20:((7,1),),21:((20,1),(3,1)),
@@ -1471,14 +1537,22 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            34:((15,1),(35,1)),35:((19,2),),41:((39,8),),42:((4,1),(5,1)),
            43:((18,1),),48:((3,1),),56:((52,1),(53,1),(54,1)),
            57:((19,2),),66:((59,1),(60,1),(61,1),(62,1),(63,1),(64,1),(65,1)),
-           67:((66,1),(58,1))}
-cancraft=[0,0,2,7,19,57,35,43,34,41,42,6,13,56,66,67,48,8,9,10,16,25,28,20,
-          21,22,23,26,29,14,15,30,31,33,32,0,0]
-cancraftnum=[0,0,1,2,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,1,1,1,1,1,8,0,0]
-tooltype=[0,0,1,2,0,0]
-toolneed={1:(0,1),2:(2,1)}
-toolitems={0:(9,10,16,25,28),1:(15,30),2:(21,22,23,26,29)}
+           67:((66,1),(58,1)),70:((8,1),(69,1)),71:((20,1),(69,1)),
+           72:((7,1),),73:((72,1),(3,1)),74:((72,1),(2,1)),75:((72,1),(5,1)),
+           76:((72,1),(24,1)),77:((72,1),(27,1)),78:((72,1),(69,1)),
+           82:((7,1),),79:((82,1),(3,1)),80:((82,1),(2,1)),81:((82,1),(5,1)),
+           83:((7,1),),84:((83,1),(3,1)),85:((83,1),(2,1)),86:((83,1),(5,1)),
+           87:((83,1),(24,1)),88:((83,1),(27,1)),89:((83,1),(69,1)),}
+cancraft=[0,0,2,7,19,57,35,43,34,41,42,6,13,56,66,67,48,8,9,10,16,25,28,70,20,
+          21,22,23,26,29,71,72,73,74,75,76,77,78,14,15,30,82,
+          79,80,81,83,84,85,86,87,88,89,31,33,32,0,0]
+cancraftnum=[0,0,1,2,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,1,1,1,1,1,1,1,8,0,0]
+tooltype=[0,0,1,2,3,4,0,0]
+toolneed={1:(0,1),2:(2,1),3:(3,1),4:(4,5)}
+toolitems={0:(9,10,16,25,28,70),1:(15,30),2:(21,22,23,26,29,71),
+           3:(73,74,75,76,77,78),4:(79,80,81),5:(84,85,86,87,88,89)}
 finalpoem=[
     '你好',
     '这个游戏的主线就这样结束了',
@@ -1532,6 +1606,8 @@ def worldgnr():
                 dworld[i].append(Block(14,i,j))
             elif noise([i/4+2050,j/4+2050])>0.45:
                 dworld[i].append(Block(46,i,j))
+            elif noise([i/3+1025,j/3+1025])<-0.4:
+                world[i].append(Block(49,i,j))
             else:
                 dworld[i].append(Block(2,i,j))
     for i in range(width):
@@ -1573,6 +1649,8 @@ def worldgnr():
                 world[i].append(Block(13,i,j))
             elif noise([i/4,j/4])<-0.45:
                 world[i].append(Block(14,i,j))
+            elif noise([i/3,j/3])<-0.425:
+                world[i].append(Block(49,i,j))
             else:
                 world[i].append(Block(2,i,j))
         if curbio==0:
@@ -1935,6 +2013,7 @@ def on_key_press(symbol,modifiers):
             entities[0].x=respawnx
             entities[0].y=respawny
             isdead=False
+        return
     if symbol==pgt.window.key.A:
         entities[0].isleft=True
         entities[0].lastleft=True
@@ -1983,22 +2062,41 @@ def on_key_press(symbol,modifiers):
             worlds.append(' ')
             curchoi=0
     if symbol==pgt.window.key.PAGEUP:
-        if iscrafting==True or istooling==True:
-            if curchoi>0:
-                curchoi-=1
-        if toolstep>=0:
-            if curchoi2>0:
-                curchoi2-=1
+        if not modifiers & pgt.window.key.MOD_SHIFT:
+            if iscrafting==True or istooling==True:
+                if curchoi>0:
+                    curchoi-=1
+            if toolstep>=0:
+                if curchoi2>0:
+                    curchoi2-=1
+        else:
+            if iscrafting==True or istooling==True:
+                if curchoi>4:
+                    curchoi-=5
+            if toolstep>=0:
+                if curchoi2>4:
+                    curchoi2-=5
     if symbol==pgt.window.key.PAGEDOWN:
-        if iscrafting==True:
-            if curchoi<len(cancraft)-5:
-                curchoi+=1
-        elif istooling==True:
-            if curchoi<len(tooltype)-5:
-                curchoi+=1
-        elif toolstep>=0:
-            if curchoi2<len(cholist)-5:
-                curchoi2+=1
+        if not modifiers & pgt.window.key.MOD_SHIFT:
+            if iscrafting==True:
+                if curchoi<len(cancraft)-5:
+                    curchoi+=1
+            elif istooling==True:
+                if curchoi<len(tooltype)-5:
+                    curchoi+=1
+            elif toolstep>=0:
+                if curchoi2<len(cholist)-5:
+                    curchoi2+=1
+        else:
+            if iscrafting==True:
+                if curchoi<len(cancraft)-10:
+                    curchoi+=5
+            elif istooling==True:
+                if curchoi<len(tooltype)-10:
+                    curchoi+=5
+            elif toolstep>=0:
+                if curchoi2<len(cholist)-10:
+                    curchoi2+=5
     if symbol==pgt.window.key.ENTER:
         if iscrafting==True:
             cnt=0
