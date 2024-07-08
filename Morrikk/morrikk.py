@@ -19,9 +19,17 @@ class Block():
             else:
                 self.clight=0
         self.light=self.clight
+        if self.id==52:
+            self.crted=False
+        if self.id==56:
+            self.storage=[]
+            for i in range(32):
+                self.storage.append([])
+                for j in range(7):
+                    self.storage[i].append(0)
     def use(self,x,y):
         global iscrafting,istooling,curchoi,entities,lentities,dentities,\
-               world,lworld,dworld,isdark,cooking
+               world,lworld,dworld,isdark,cooking,openbox,boxxy
         if not iscrafting and not istooling and not cooking:
             if self.id==7:
                 iscrafting=True
@@ -31,6 +39,10 @@ class Block():
                 curchoi=0
             if self.id==50:
                 cooking=True
+                curchoi=0
+            if self.id==56:
+                openbox=True
+                boxxy=[x,y]
                 curchoi=0
         if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==48:
             if self.id==38:
@@ -70,6 +82,18 @@ class Block():
                 else:
                     entities[0]=dentities[0]
             world[x][y]=Block(47,x,y)
+        if self.id==52:
+            self.id=54
+            world[x][y-1].id=55
+        elif self.id==53:
+            self.id=55
+            world[x][y+1].id=54
+        elif self.id==54:
+            self.id=52
+            world[x][y-1].id=53
+        elif self.id==55:
+            self.id=53
+            world[x][y+1].id=52
     def update(self,x,y):
         self.light=self.clight
         if canlit[world[x+1][y].id] or world[x+1][y].clight>0:
@@ -167,6 +191,50 @@ class Block():
                     if curheight>1:
                         world[x-1][y].id=46-(curheight//2)
                         self.id=46-(curheight//2+curheight%2)
+        elif self.id==52:
+            if world[x][y-1].id==0:
+                if not self.crted:
+                    world[x][y-1]=Block(53,x,y-1)
+                    self.crted=True
+                else:
+                    self.id=0
+                    if y<=dheights[x] and not isdark:
+                        self.clight=8
+                    else:
+                        self.clight=0
+            elif world[x][y-1].id!=53:
+                self.id=0
+                if y<=dheights[x] and not isdark:
+                    self.clight=8
+                else:
+                    self.clight=0
+        elif self.id==53:
+            if world[x][y+1].id!=52:
+                self.id=0
+                if y<=dheights[x] and not isdark:
+                    self.clight=8
+                else:
+                    self.clight=0
+        elif self.id==54:
+            if world[x][y-1].id==0:
+                self.id=0
+                if y<=dheights[x] and not isdark:
+                    self.clight=8
+                else:
+                    self.clight=0
+            elif world[x][y-1].id!=55:
+                self.id=0
+                if y<=dheights[x] and not isdark:
+                    self.clight=8
+                else:
+                    self.clight=0
+        elif self.id==55:
+            if world[x][y+1].id!=54:
+                self.id=0
+                if y<=dheights[x] and not isdark:
+                    self.clight=8
+                else:
+                    self.clight=0
 
 class Item():
     def __init__(self,cid):
@@ -1236,7 +1304,7 @@ class Zombie(Entity):
                             if drop[world[self.x+1][self.y-1].id] not in (0,56):
                                 entities.append(Dropped(self.x+1,self.y-1,drop[world[self.x+1][self.y-1].id]))
                             world[self.x+1][self.y-1]=Block(0,self.x+1,self.y-1)
-                        if drop[self.x+1][self.y-2+(self.yy==0)]!=56:
+                        if drop[world[self.x+1][self.y-2+(self.yy==0)].id]!=56:
                             if drop[world[self.x+1][self.y-2+(self.yy==0)].id] not in (0,56):
                                 entities.append(Dropped(self.x+1,self.y-2+(self.yy==0),drop[world[self.x+1][self.y-2+(self.yy==0)].id]))
                             world[self.x+1][self.y-2+(self.yy==0)]=Block(0,self.x+1,self.y-2+(self.yy==0))
@@ -1374,7 +1442,7 @@ def init():
     global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
            cholist,chol,entities,enum,world,width,height,worlds,chopped,needkotb,\
            dheights,biomes,respawnx,respawny,lworld,dworld,lentities,dentities,\
-           isdark,freezing,manao,final,fin,age,playtm,cooking
+           isdark,freezing,manao,final,fin,age,playtm,cooking,openbox,boxxy
     playtm=0
     ismainmenu=True
     ischoosing=False
@@ -1389,6 +1457,8 @@ def init():
     isdead=False
     curchoi=0
     curchoi2=0
+    openbox=False
+    boxxy=[0,0]
     cholist=[]
     chol=[]
     chopped=0
@@ -1439,9 +1509,9 @@ iimages=[]
 timages=[]
 eimages=[]
 limages=[]
-for i in range(52):
+for i in range(57):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(94):
+for i in range(96):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(5):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -1490,37 +1560,37 @@ fall=[True,False,False,True,True,True,False,True,False,
       True,False,True,True,True,True,True,True,False,True,
       True,True,True,True,True,True,True,True,False,True,
       True,True,True,True,True,True,True,False,True,True,
-      False,True,False]
+      False,True,False,True,True,False,False,True]
 climb=[False,False,False,True,False,False,False,False,False,
        False,False,False,False,False,False,False,False,
        False,False,False,False,False,False,True,False,
        False,False,False,False,True,True,False,True,
        True,False,False,False,False,True,False,False,False,
        False,False,False,False,False,False,True,False,
-       False,False]
+       False,False,False,False,False,False,False]
 drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
       36,37,0,3,38,39,40,41,0,0,0,44,3,0,45,46,47,0,0,
-      0,0,0,0,0,0,0,50,56,57,69,90,92]
+      0,0,0,0,0,0,0,50,56,57,69,90,92,94,94,94,94,95]
 light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-       0,0,8,4]
+       0,0,8,4,0,0,0,0,0]
 canlit=[True,False,False,False,True,True,False,False,False,
         True,False,True,True,False,False,True,True,False,False,
         True,False,False,True,False,True,True,True,True,True,
         True,True,True,True,True,True,True,True,True,True,
         True,True,True,True,True,True,True,True,False,False,
-        True,False,True,True]
+        True,False,True,True,True,True,False,False,True]
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
      30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47,
      48,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-     0,0,0,0,0,0,0,0,0,0,0,50,0,0,0]
+     0,0,0,0,0,0,0,0,0,0,0,50,0,0,0,52,56]
 diglvl=[0,1,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,1,2,
         0,0,0,1,0,2,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
-        ,10000,10000,10000,10000,3,10000,0,3,0,4]
+        ,10000,10000,10000,10000,3,10000,0,3,0,4,0,0,0,0,0]
 digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,3,2,
          0,0,0,3,0,3,2,2,2,0,0,2,0,0,0,1,1,1,1,1,1,1,1,1,
-         1,0,0,1,0,1]
+         1,0,0,1,0,1,0,0,0,0,0]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木板','镐头模板','木镐头','石镐头','小黄花',' ',
        '工具制作桩','握柄模板','木握柄','铁镐头','小石子',
@@ -1537,7 +1607,8 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '木铲身','石铲身','铁铲身','金铲身','银铲身',
         '钻石铲身','木剑柄','石剑柄','铁剑柄','剑柄模板',
        '剑刃模板','木剑刃','石剑刃','铁剑刃','金剑刃','银剑刃',
-       '钻石剑刃','篝火','熟猪肉','水晶','水晶球']
+       '钻石剑刃','篝火','熟猪肉','水晶','水晶球','门',
+       '箱子']
 tname=[' ','镐子','锄头','铲子','剑']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -1554,11 +1625,11 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            82:((7,1),),79:((82,1),(3,1)),80:((82,1),(2,1)),81:((82,1),(5,1)),
            83:((7,1),),84:((83,1),(3,1)),85:((83,1),(2,1)),86:((83,1),(5,1)),
            87:((83,1),(24,1)),88:((83,1),(27,1)),89:((83,1),(69,1)),
-           90:((3,2),(17,8)),93:((92,1),)}
-cancraft=[0,0,2,7,19,57,35,43,34,41,42,6,13,90,56,66,67,48,8,9,10,16,
+           90:((3,2),(17,8)),93:((92,1),),94:((7,2),),95:((3,1),(2,1))}
+cancraft=[0,0,2,7,94,95,19,57,35,43,34,41,42,6,13,90,56,66,67,48,8,9,10,16,
           25,28,70,20,21,22,23,26,29,71,72,73,74,75,76,77,78,14,15,30,82,
           79,80,81,83,84,85,86,87,88,89,31,93,33,32,0,0]
-cancraftnum=[0,0,1,2,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
+cancraftnum=[0,0,1,2,1,1,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
              1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
              1,1,1,1,1,1,1,1,1,1,1,1,1,8,0,0]
 cookdict={91:((55,1),),49:((41,1),(48,1))}
@@ -1846,7 +1917,15 @@ def freeze(dt):
                 f.write('\n')
             for i in range(width):
                 for j in range(height):
-                    f.write(str(lworld[i][j].id)+' ')
+                    if lworld[i][j].id==56:
+                        f.write(str(lworld[i][j].id)+'^')
+                        for ik in lworld[i][j].storage:
+                            for jk in ik:
+                                f.write(str(jk)+'^')
+                            print(ik)
+                        f.write(' ')
+                    else:
+                        f.write(str(lworld[i][j].id)+' ')
                 f.write(str(dheights[i]))
                 f.write('\n')
             f.write(str(len(dentities))+'\n')
@@ -1855,7 +1934,15 @@ def freeze(dt):
                 f.write('\n')
             for i in range(width):
                 for j in range(height):
-                    f.write(str(dworld[i][j].id)+' ')
+                    if dworld[i][j].id==56:
+                        f.write(str(dworld[i][j].id)+'^')
+                        for ik in dworld[i][j].storage:
+                            for jk in ik:
+                                f.write(str(jk)+'^')
+                            print(ik)
+                        f.write(' ')
+                    else:
+                        f.write(str(dworld[i][j].id)+' ')
                 f.write('\n')
     except:
         freeze(dt)
@@ -1939,7 +2026,14 @@ def readworld():
                 world.append([])
                 dheights.append(int(linee[height]))
                 for j in range(height):
-                    world[i].append(Block(int(linee[j]),i,j))
+                    if linee[j].strip().split('^')[0]=='56':
+                        stor=linee[j].strip().split('^')
+                        world[i].append(Block(int(stor[0]),i,j))
+                        for ik in range(32):
+                            for jk in range(7):
+                                world[i][j].storage[ik][jk]=int(stor[ik*7+jk+1])
+                    else:
+                        world[i].append(Block(int(linee[j]),i,j))
             lworld=list(world)
             isdark=True
             enlen=int(f.readline().strip())
@@ -1980,7 +2074,14 @@ def readworld():
                 linee=f.readline().strip().split(' ')
                 dworld.append([])
                 for j in range(height):
-                    dworld[i].append(Block(int(linee[j]),i,j))
+                    if linee[j].strip().split('^')[0]=='56':
+                        stor=linee[j].strip().split('^')
+                        dworld[i].append(Block(int(stor[0]),i,j))
+                        for ik in range(32):
+                            for jk in range(7):
+                                dworld[i][j].storage[ik][jk]=int(stor[ik*7+jk+1])
+                    else:
+                        dworld[i].append(Block(int(linee[j]),i,j))
             isdark=False
     if tsisdark:
         jtblock=Block(47,2,2)
@@ -1990,7 +2091,7 @@ def readworld():
 @window.event
 def on_key_press(symbol,modifiers):
     global iscrafting,curchoi,ismainmenu,ischoosing,worldname,worlds,isdead
-    global istooling,toolstep,cholist,curchoi2,chol,cooking
+    global istooling,toolstep,cholist,curchoi2,chol,cooking,openbox
     if ischoosing and not ismainmenu:
         if symbol==pgt.window.key.PAGEDOWN:
             if curchoi>0:
@@ -2009,6 +2110,7 @@ def on_key_press(symbol,modifiers):
                 else:
                     seed(seedd)
                     noise=PerlinNoise(seed=seedd)
+                    init()
                     worldgnr()
                     ischoosing=False
                     freeze(0)
@@ -2074,6 +2176,10 @@ def on_key_press(symbol,modifiers):
             istooling=False
         elif toolstep>=0:
             pass
+        elif cooking==True:
+            cooking=False
+        elif openbox:
+            openbox=False
         else:
             freeze(0)
             ischoosing=True
@@ -2088,14 +2194,14 @@ def on_key_press(symbol,modifiers):
             curchoi=0
     if symbol==pgt.window.key.PAGEUP:
         if not modifiers & pgt.window.key.MOD_SHIFT:
-            if iscrafting==True or istooling==True or cooking:
+            if iscrafting==True or istooling==True or cooking or openbox:
                 if curchoi>0:
                     curchoi-=1
             if toolstep>=0:
                 if curchoi2>0:
                     curchoi2-=1
         else:
-            if iscrafting==True or istooling==True or cooking:
+            if iscrafting==True or istooling==True or cooking or openbox:
                 if curchoi>4:
                     curchoi-=5
             if toolstep>=0:
@@ -2115,6 +2221,9 @@ def on_key_press(symbol,modifiers):
             elif cooking:
                 if curchoi<len(cancook)-5:
                     curchoi+=1
+            elif openbox:
+                if curchoi<27:
+                    curchoi+=1
         else:
             if iscrafting==True:
                 if curchoi<len(cancraft)-10:
@@ -2127,6 +2236,9 @@ def on_key_press(symbol,modifiers):
                     curchoi2+=5
             elif cooking:
                 if curchoi<len(cancook)-10:
+                    curchoi+=5
+            elif openbox:
+                if curchoi<22:
                     curchoi+=5
     if symbol==pgt.window.key.ENTER:
         if iscrafting==True:
@@ -2188,6 +2300,28 @@ def on_key_press(symbol,modifiers):
                     entities[0].bdel(cancook[curchoi+2],1)
                     break
                 cnt+=1
+        elif openbox:
+            tmp=entities[0].backpack[entities[0].chosi][entities[0].chosj]
+            if world[boxxy[0]][boxxy[1]].storage[curchoi+2][0]==12:
+                entities[0].backpack[entities[0].chosi][entities[0].chosj]=Tool(world[boxxy[0]][boxxy[1]].storage[curchoi+2][4],\
+                                                                            world[boxxy[0]][boxxy[1]].storage[curchoi+2][2],\
+                                                                            world[boxxy[0]][boxxy[1]].storage[curchoi+2][3])
+                entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse=world[boxxy[0]][boxxy[1]].storage[curchoi+2][5]
+                entities[0].backpack[entities[0].chosi][entities[0].chosj].damage=world[boxxy[0]][boxxy[1]].storage[curchoi+2][6]
+            else:
+                entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(world[boxxy[0]][boxxy[1]].storage[curchoi+2][0])
+                entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt=world[boxxy[0]][boxxy[1]].storage[curchoi+2][1]
+            if tmp.id==12:
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][0]=tmp.id
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][1]=tmp.cnt
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][2]=tmp.first
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][3]=tmp.second
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][4]=tmp.tid
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][5]=tmp.canuse
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][6]=tmp.damage
+            else:
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][0]=tmp.id
+                world[boxxy[0]][boxxy[1]].storage[curchoi+2][1]=tmp.cnt
         else:
             if time()-entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg>=1:
                 entities[0].backpack[entities[0].chosi][entities[0].chosj].lastdmg=time()
@@ -2266,6 +2400,13 @@ def on_mouse_press(x,y,button,modifiers):
        (digtype[world[curx][cury].id]==0 or entities[0].backpack[entities[0].chosi][entities[0].chosj].tid==digtype[world[curx][cury].id]):
         if drop[world[curx][cury].id]!=0:
             entities.append(Dropped(curx,cury,drop[world[curx][cury].id]))
+            if world[curx][cury].id==56:
+                for i in world[curx][cury].storage:
+                    if i[0]!=12:
+                        for j in range(i[1]):
+                            entities.append(Dropped(curx,cury,i[0]))
+                    else:
+                        entities.append(DroppedTool(curx,cury,i[4],i[2],i[3],i[5],i[6]))
             entities[0].moved+=1
             if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==12:
                 entities[0].backpack[entities[0].chosi][entities[0].chosj].use(1)
@@ -2529,6 +2670,41 @@ def on_draw():
                               x=896+2.25*34,y=500-4*34,
                               anchor_x='center',anchor_y='center',
                               batch=guibatch))
+    if openbox:
+        for i in range(5):
+            if i!=2:
+                guisp.append(pgt.sprite.Sprite(
+                    img=itembg,
+                    x=958,y=504-i*34,
+                    batch=guibatch))
+            else:
+                guisp.append(pgt.sprite.Sprite(
+                    img=chositembg,
+                    x=958,y=504-i*34,
+                    batch=guibatch))
+            if world[boxxy[0]][boxxy[1]].storage[curchoi+i][1]!=0:
+                guisp.append(pgt.text.Label(str(world[boxxy[0]][boxxy[1]].storage[curchoi+i][1]),
+                                  font_name='Times New Roman',
+                                  font_size=9,
+                                  x=966,y=512-i*34,
+                                  anchor_x='center',anchor_y='center',
+                                  batch=guibatch))
+            if world[boxxy[0]][boxxy[1]].storage[curchoi+i][0]!=12:
+                guisp.append(pgt.sprite.Sprite(
+                    img=iimages[world[boxxy[0]][boxxy[1]].storage[curchoi+i][0]],
+                    x=966,y=512-i*34,
+                    batch=guibatch))
+            else: 
+                guisp.append(pgt.sprite.Sprite(
+                        x=966,y=512-i*34,
+                        img=iimages[world[boxxy[0]][boxxy[1]].storage[curchoi+i][2]],
+                        batch=guibatch
+                        ))
+                guisp.append(pgt.sprite.Sprite(
+                        x=966,y=512-i*34,
+                        img=iimages[world[boxxy[0]][boxxy[1]].storage[curchoi+i][3]],
+                        batch=guibatch
+                        ))
     guibatch.draw()
     fps_display.draw()
 
