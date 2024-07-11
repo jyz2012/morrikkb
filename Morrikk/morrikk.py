@@ -5,6 +5,7 @@ from os.path import exists
 from os import listdir,remove
 from easygui import enterbox,msgbox
 from time import time
+from math import floor
 
 class Block():
     def __init__(self,cid,x,y):
@@ -203,6 +204,8 @@ class Block():
                     else:
                         self.clight=0
             elif world[x][y-1].id!=53:
+                if not self.crted:
+                    entities.append(Dropped(x,y,94))
                 self.id=0
                 if y<=dheights[x] and not isdark:
                     self.clight=8
@@ -437,6 +440,38 @@ class Tool():
             self.canuse+=512
             self.diglvl=0
             self.damage=12
+        if self.first==96:
+            self.canuse+=32
+            self.diglvl=1
+            self.damage=2
+        elif self.first==108:
+            self.canuse+=64
+            self.diglvl=2
+            self.damage=3
+        if self.first==100:
+            self.canuse+=48
+            self.diglvl=1
+            self.damage=2
+        elif self.first==109:
+            self.canuse+=96
+            self.diglvl=2
+            self.damage=3
+        if self.first==103:
+            self.canuse+=40
+            self.diglvl=1
+            self.damage=2
+        elif self.first==110:
+            self.canuse+=80
+            self.diglvl=2
+            self.damage=3
+        if self.first==106:
+            self.canuse+=32
+            self.diglvl=1
+            self.damage=2
+        elif self.first==111:
+            self.canuse+=64
+            self.diglvl=2
+            self.damafge=3
         if self.second==15:
             self.canuse+=8
         elif self.second==30:
@@ -447,6 +482,14 @@ class Tool():
             self.canuse+=24
         elif self.second==81:
             self.canuse+=48
+        if self.second==98:
+            self.canuse+=16
+        if self.second==101:
+            self.canuse+=20
+        if self.second==104:
+            self.canuse+=18
+        if self.second==107:
+            self.canuse+=16
     def use(self,num):
         entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse-=num
         if entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse<=0:
@@ -521,6 +564,7 @@ class Player(Entity):
         self.chosj=0
         self.lchosi=-1
         self.lchosj=-1
+        self.achos=0
         self.fallen=0
         self.moved=0
         self.lastleft=True
@@ -529,6 +573,7 @@ class Player(Entity):
             self.backpack.append([])
             for j in range(6):
                 self.backpack[i].append(Item(0))
+        self.armor=[Tool(0,0,0),Tool(0,0,0),Tool(0,0,0),Tool(0,0,0)]
     def move(self,dxx,dyy):
         self.xx+=dxx
         self.yy+=dyy
@@ -545,20 +590,50 @@ class Player(Entity):
             self.yy+=32
             self.y-=1
     def draw(self,batch):
+        armorspr=[]
         if self.isleft or self.isright:
             sprite=pgt.sprite.Sprite(x=512,y=288,
                                    img=eimages[0][self.lastleft][int(self.flick)%4],
                                      batch=batch)
+            for i in range(3):
+                armorspr.append(pgt.sprite.Sprite(
+                    aimages[toaimg[self.armor[i].first]][self.isleft],
+                    x=512,y=288,
+                    batch=batch))
+            armorspr.append(pgt.sprite.Sprite(
+                    bimages[tobimg[self.armor[3].first]][self.isleft][int(self.flick)%4],
+                    x=512,y=288,
+                    batch=batch))
         elif self.isclimbing:
             sprite=pgt.sprite.Sprite(x=512,y=288,
                                    img=eimages[0][2][0],
                                      batch=batch)
+            for i in range(3):
+                armorspr.append(pgt.sprite.Sprite(
+                    aimages[toaimg[self.armor[i].first]][2],
+                    x=512,y=288,
+                    batch=batch))
+            armorspr.append(pgt.sprite.Sprite(
+                    bimages[tobimg[self.armor[3].first]][2],
+                    x=512,y=288,
+                    batch=batch))
         else:
             sprite=pgt.sprite.Sprite(x=512,y=288,
                                    img=eimages[0][self.lastleft][0],
                                      batch=batch)
+            for i in range(3):
+                armorspr.append(pgt.sprite.Sprite(
+                    aimages[toaimg[self.armor[i].first]][self.lastleft],
+                    x=512,y=288,
+                    batch=batch))
+            armorspr.append(pgt.sprite.Sprite(
+                    bimages[tobimg[self.armor[3].first]][self.isleft][0],
+                    x=512,y=288,
+                    batch=batch))
 
         sprite.draw()
+        for i in armorspr:
+            i.draw()
         if self.ishurten:
             redr=pgt.shapes.Rectangle(x=512,
                                       y=288,
@@ -568,6 +643,8 @@ class Player(Entity):
             self.ishurten=False
     def drawbp(self):
         ibatch=pgt.graphics.Batch()
+        ibatch2=pgt.graphics.Batch()
+        ibatch3=pgt.graphics.Batch()
         ilist=[]
         for i in range(8):
             for j in range(6):
@@ -593,18 +670,18 @@ class Player(Entity):
                     ilist.append(pgt.sprite.Sprite(
                         x=924-i*34,y=512-j*34,
                         img=iimages[self.backpack[i][j].id],
-                        batch=ibatch
+                        batch=ibatch2
                         ))
                 else:
                     ilist.append(pgt.sprite.Sprite(
                         x=924-i*34,y=512-j*34,
-                        img=iimages[self.backpack[i][j].first],
-                        batch=ibatch
+                        img=iimages[self.backpack[i][j].second],
+                        batch=ibatch2
                         ))
                     ilist.append(pgt.sprite.Sprite(
                         x=924-i*34,y=512-j*34,
-                        img=iimages[self.backpack[i][j].second],
-                        batch=ibatch
+                        img=iimages[self.backpack[i][j].first],
+                        batch=ibatch3
                         ))
                 if time()-self.backpack[i][j].lastdmg<2:
                     ilist.append(pgt.sprite.Sprite(
@@ -618,7 +695,7 @@ class Player(Entity):
                               font_size=9,
                               x=892-(i-1)*34,y=512-j*34,
                               anchor_x='center',anchor_y='center',
-                              batch=ibatch))
+                              batch=ibatch2))
         if self.backpack[self.chosi][self.chosj].id!=12:
             ilist.append(pgt.text.Label(iname[self.backpack[self.chosi][self.chosj].id],
                               font_name='Times New Roman',
@@ -658,6 +735,8 @@ class Player(Entity):
                         batch=ibatch
                         ))
         ibatch.draw()
+        ibatch2.draw()
+        ibatch3.draw()
     def update(self,dt):
         global isdead
         if self.falling() and self.jump<0.95 and self.y<240 and \
@@ -712,6 +791,31 @@ class Player(Entity):
         if self.heart<=0:
             isdead=True
         self.flick+=dt*8
+    def hurt(self,dx):
+        print(dx)
+        if dx<=0:
+            super().hurt(dx)
+        else:
+            armord=[0,0,0,0]
+            armord[randint(0,3)]+=(dx+4)//5
+            dx-=(dx+4)//5
+            while dx>0:
+                for i in (1,2,0,3):
+                    armord[i]+=1
+                    dx-=1
+                    if dx==0:
+                        break
+                if dx==0:
+                    break
+            for i in range(len(armord)):
+                dmg=armord[i]*dprecent[i][self.armor[i].diglvl]
+                if dmg-floor(dmg)>0.5:
+                    self.armor[i].canuse-=1
+                self.armor[i].canuse-=floor(dmg)
+                super().hurt(int(max(armord[i]-floor(dmg)-bool(dmg-floor(dmg)>0.5),0)))
+                if self.armor[i].canuse<=0:
+                    self.armor[i]=Tool(0,0,0)
+                print(dmg,armord[i],i)
     def badd(self,iid,num):
         for i in range(8):
             for j in range(6):
@@ -844,8 +948,8 @@ class DroppedTool(Dropped):
                     y=(entities[0].y-self.y-1)*32+288+int(entities[0].yy)-self.yy,
                     batch=batch
                     )
-        sp.draw()
         sp2.draw()
+        sp.draw()
     def getfreeze(self):
         return str(self.id)+' '+str(self.tid)+' '+str(self.first)+' '+str(self.second)+' '+str(self.canuse)+' '+str(self.x)+' '+str(self.y)+' '+str(self.damage)
 
@@ -1509,11 +1613,13 @@ iimages=[]
 timages=[]
 eimages=[]
 limages=[]
+aimages=[]
+bimages=[]
 for i in range(57):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(96):
+for i in range(112):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
-for i in range(5):
+for i in range(9):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
 eimages.append([[],[],[]])
 for i in range(5):
@@ -1551,7 +1657,19 @@ eimages.append([])
 eimages[11].append(pgt.image.load('imgs/entities/11/0.png'))
 for i in range(9):
     limages.append(pgt.image.load('imgs/light/'+str(i)+'.png'))
-
+for i in range(7):
+    aimages.append([])
+    aimages[i].append(pgt.image.load('imgs/armor/0/'+str(i)+'.png'))
+    aimages[i].append(pgt.image.load('imgs/armor/1/'+str(i)+'.png'))
+    aimages[i].append(pgt.image.load('imgs/armor/2/'+str(i)+'.png'))
+for i in range(3):
+    bimages.append([[],[]])
+    for j in range(5):
+        bimages[i][0].append(pgt.image.load('imgs/armor/b/0/'+str(i)+'/'+str(j)+'.png'))
+        bimages[i][1].append(pgt.image.load('imgs/armor/b/1/'+str(i)+'/'+str(j)+'.png'))
+    bimages[i].append(pgt.image.load('imgs/armor/b/2/'+str(i)+'.png'))
+toaimg={0:0,96:1,100:2,103:3,108:4,109:5,110:6}
+tobimg={0:0,106:1,111:2}
 hconst=16
 wconst=10
 edgconst=1
@@ -1573,7 +1691,7 @@ drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
       0,0,0,0,0,0,0,50,56,57,69,90,92,94,94,94,94,95]
 light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-       0,0,8,4,0,0,0,0,0]
+       0,0,8,4,0,0,0,0,0,0,0,0]
 canlit=[True,False,False,False,True,True,False,False,False,
         True,False,True,True,False,False,True,True,False,False,
         True,False,False,True,False,True,True,True,True,True,
@@ -1584,11 +1702,12 @@ put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
      30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47,
      48,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-     0,0,0,0,0,0,0,0,0,0,0,50,0,0,0,52,56]
+     0,0,0,0,0,0,0,0,0,0,0,50,0,0,0,52,56,0,0,0,0,0,
+     0,0,0,0,0,0,0]
 diglvl=[0,1,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,1,2,
         0,0,0,1,0,2,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
         ,10000,10000,10000,10000,3,10000,0,3,0,4,0,0,0,0,0]
-digtype=[0,0,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,3,2,
+digtype=[0,3,1,0,0,0,1,0,0,0,1,0,2,1,1,0,0,1,1,0,3,2,
          0,0,0,3,0,3,2,2,2,0,0,2,0,0,0,1,1,1,1,1,1,1,1,1,
          1,0,0,1,0,1,0,0,0,0,0]
 iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
@@ -1608,8 +1727,12 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
         '钻石铲身','木剑柄','石剑柄','铁剑柄','剑柄模板',
        '剑刃模板','木剑刃','石剑刃','铁剑刃','金剑刃','银剑刃',
        '钻石剑刃','篝火','熟猪肉','水晶','水晶球','门',
-       '箱子']
-tname=[' ','镐子','锄头','铲子','剑']
+       '箱子','木头盔外表','头盔模板','布头盔内衬',
+       '胸甲模板','木胸甲外表','布胸甲内衬','腿甲模板',
+       '木腿甲外表','布腿甲内衬','靴子模板','木靴子外表',
+       '布靴子内衬','石头盔外表','石胸甲外表','石腿甲外表',
+       '石靴子外表']
+tname=[' ','镐子','锄头','铲子','剑','头盔','胸甲','腿甲','靴子']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
            16:((8,1),(5,1)),19:((18,1),),20:((7,1),),21:((20,1),(3,1)),
@@ -1625,19 +1748,33 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            82:((7,1),),79:((82,1),(3,1)),80:((82,1),(2,1)),81:((82,1),(5,1)),
            83:((7,1),),84:((83,1),(3,1)),85:((83,1),(2,1)),86:((83,1),(5,1)),
            87:((83,1),(24,1)),88:((83,1),(27,1)),89:((83,1),(69,1)),
-           90:((3,2),(17,8)),93:((92,1),),94:((7,2),),95:((3,1),(2,1))}
+           90:((3,2),(17,8)),93:((92,1),),94:((7,2),),95:((3,1),(2,1)),
+           97:((7,1),),96:((97,1),(3,1)),98:((97,1),(35,1)),99:((7,1),),
+           100:((99,1),(3,1)),101:((99,1),(35,1)),102:((7,1),),
+           103:((102,1),(3,1)),104:((102,1),(35,1)),105:((7,1),),
+           106:((105,1),(3,10)),107:((105,1),(35,1)),108:((97,1),(2,1)),
+           109:((99,1),(2,1)),110:((102,1),(2,1)),111:((105,1),(2,1))}
 cancraft=[0,0,2,7,94,95,19,57,35,43,34,41,42,6,13,90,56,66,67,48,8,9,10,16,
           25,28,70,20,21,22,23,26,29,71,72,73,74,75,76,77,78,14,15,30,82,
-          79,80,81,83,84,85,86,87,88,89,31,93,33,32,0,0]
+          79,80,81,83,84,85,86,87,88,89,97,98,96,108,99,100,101,109,102,104,103,
+          110,105,107,106,111,31,93,33,32,0,0]
 cancraftnum=[0,0,1,2,1,1,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,1,1,1,1,1,1,1,1,8,0,0]
+             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,1,1,1,8,0,0]
 cookdict={91:((55,1),),49:((41,1),(48,1))}
 cancook=[0,0,91,49,0,0]
-tooltype=[0,0,1,2,3,4,0,0]
-toolneed={1:(0,1),2:(2,1),3:(3,1),4:(4,5)}
+tooltype=[0,0,1,2,3,4,5,6,7,8,0,0]
+toolneed={1:(0,1),2:(2,1),3:(3,1),4:(4,5),5:(7,6),6:(9,8),7:(11,10),
+          8:(13,12)}
 toolitems={0:(9,10,16,25,28,70),1:(15,30),2:(21,22,23,26,29,71),
-           3:(73,74,75,76,77,78),4:(79,80,81),5:(84,85,86,87,88,89)}
+           3:(73,74,75,76,77,78),4:(79,80,81),5:(84,85,86,87,88,89),
+           6:(98,),7:(96,108),8:(101,),9:(100,109),10:(104,),11:(103,110),
+           12:(107,),13:(106,111)}
+dprecent=[[0,0.25,0.35,0,0,0],
+          [0,0.3,0.4,0,0,0],
+          [0,0.3,0.4,0,0,0],
+          [0,0.25,0.35,0,0,0]]
 finalpoem=[
     '你好',
     '这个游戏的主线就这样结束了',
@@ -1736,7 +1873,7 @@ def worldgnr():
                 world[i].append(Block(14,i,j))
             elif noise([i/3,j/3])<-0.425:
                 world[i].append(Block(49,i,j))
-            elif random()<0.001 and i>10 and j>10:
+            elif random()<0.001 and i>150 and j>150:
                 world[i].append(Block(2,i,j))
                 holew=randint(2,5)
                 for ik in range(holew):
@@ -1877,12 +2014,19 @@ def freeze(dt):
     freezing=True
     if ismainmenu or ischoosing:
         return
-    try:
+    if True:
         with open('world/'+worldname,'w') as f:
             f.write(str(chopped)+'\n')
             f.write(str(int(playtm))+'\n')
             for i in manao:
                 f.write(str(i)+' ')
+            f.write('\n')
+            for i in entities[0].armor:
+                f.write(str(i.tid)+'^')
+                f.write(str(i.first)+'^')
+                f.write(str(i.second)+'^')
+                f.write(str(i.canuse)+'^')
+                f.write(str(i.damage)+' ')
             f.write('\n')
             f.write(str(respawnx)+' '+str(respawny)+'\n')
             for i in biomes:
@@ -1922,7 +2066,6 @@ def freeze(dt):
                         for ik in lworld[i][j].storage:
                             for jk in ik:
                                 f.write(str(jk)+'^')
-                            print(ik)
                         f.write(' ')
                     else:
                         f.write(str(lworld[i][j].id)+' ')
@@ -1939,13 +2082,10 @@ def freeze(dt):
                         for ik in dworld[i][j].storage:
                             for jk in ik:
                                 f.write(str(jk)+'^')
-                            print(ik)
                         f.write(' ')
                     else:
                         f.write(str(dworld[i][j].id)+' ')
                 f.write('\n')
-    except:
-        freeze(dt)
     freezing=False
 
 def readworld():
@@ -1958,6 +2098,15 @@ def readworld():
             manaol=f.readline().strip().split(' ')
             for i in range(7):
                 manao[i]=bool(manaol[i]=='True')
+            armorl=f.readline().strip().split(' ')
+            for i in range(len(armorl)):
+                armorl[i]=armorl[i].strip().split('^')
+                entities[0].armor[i]=Tool(
+                            int(armorl[i][0]),
+                            int(armorl[i][1]),
+                            int(armorl[i][2]))
+                entities[0].armor[i].canuse=int(armorl[i][3])
+                entities[0].armor[i].damage=int(armorl[i][4])
             respawnx,respawny=f.readline().strip().split(' ')
             respawnx=int(respawnx)
             respawny=int(respawny)
@@ -2112,6 +2261,7 @@ def on_key_press(symbol,modifiers):
                     noise=PerlinNoise(seed=seedd)
                     init()
                     worldgnr()
+                    ismainmenu=False
                     ischoosing=False
                     freeze(0)
                     ischoosing=True
@@ -2197,16 +2347,21 @@ def on_key_press(symbol,modifiers):
             if iscrafting==True or istooling==True or cooking or openbox:
                 if curchoi>0:
                     curchoi-=1
-            if toolstep>=0:
+            elif toolstep>=0:
                 if curchoi2>0:
                     curchoi2-=1
+            else:
+                if entities[0].achos>0:
+                    entities[0].achos-=1
         else:
             if iscrafting==True or istooling==True or cooking or openbox:
-                if curchoi>4:
-                    curchoi-=5
-            if toolstep>=0:
-                if curchoi2>4:
-                    curchoi2-=5
+                if curchoi>3:
+                    curchoi-=4
+            elif toolstep>=0:
+                if curchoi2>3:
+                    curchoi2-=4
+            else:
+                entities[0].achos=0
     if symbol==pgt.window.key.PAGEDOWN:
         if not modifiers & pgt.window.key.MOD_SHIFT:
             if iscrafting==True:
@@ -2224,22 +2379,27 @@ def on_key_press(symbol,modifiers):
             elif openbox:
                 if curchoi<27:
                     curchoi+=1
+            else:
+                if entities[0].achos<3:
+                    entities[0].achos+=1
         else:
             if iscrafting==True:
-                if curchoi<len(cancraft)-10:
-                    curchoi+=5
+                if curchoi<len(cancraft)-8:
+                    curchoi+=4
             elif istooling==True:
-                if curchoi<len(tooltype)-10:
-                    curchoi+=5
+                if curchoi<len(tooltype)-8:
+                    curchoi+=4
             elif toolstep>=0:
-                if curchoi2<len(cholist)-10:
-                    curchoi2+=5
+                if curchoi2<len(cholist)-8:
+                    curchoi2+=4
             elif cooking:
-                if curchoi<len(cancook)-10:
-                    curchoi+=5
+                if curchoi<len(cancook)-8:
+                    curchoi+=4
             elif openbox:
-                if curchoi<22:
-                    curchoi+=5
+                if curchoi<23:
+                    curchoi+=4
+            else:
+                entities[0].achos=3
     if symbol==pgt.window.key.ENTER:
         if iscrafting==True:
             cnt=0
@@ -2369,7 +2529,35 @@ def on_key_press(symbol,modifiers):
                                             entities[0].backpack[entities[0].chosi][entities[0].chosj].second,
                                             entities[0].backpack[entities[0].chosi][entities[0].chosj].canuse,
                                             entities[0].backpack[entities[0].chosi][entities[0].chosj].damage))
-            
+    if symbol==pgt.window.key.TAB:
+        if modifiers & pgt.window.key.MOD_SHIFT:
+            if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==0 and \
+               entities[0].armor[entities[0].achos].first!=0:
+                entities[0].backpack[entities[0].chosi][entities[0].chosj]=entities[0].armor[entities[0].achos]
+                entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt=0
+                entities[0].armor[entities[0].achos]=Tool(0,0,0)
+        else:
+            if entities[0].backpack[entities[0].chosi][entities[0].chosj].id==12:
+                if entities[0].backpack[entities[0].chosi][entities[0].chosj].first in toolitems[7] and \
+                   entities[0].armor[0].first==0:
+                    entities[0].armor[0]=entities[0].backpack[entities[0].chosi][entities[0].chosj]
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt=0
+                elif entities[0].backpack[entities[0].chosi][entities[0].chosj].first in toolitems[9] and \
+                   entities[0].armor[1].first==0:
+                    entities[0].armor[1]=entities[0].backpack[entities[0].chosi][entities[0].chosj]
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt=0
+                elif entities[0].backpack[entities[0].chosi][entities[0].chosj].first in toolitems[11] and \
+                   entities[0].armor[2].first==0:
+                    entities[0].armor[2]=entities[0].backpack[entities[0].chosi][entities[0].chosj]
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt=0
+                elif entities[0].backpack[entities[0].chosi][entities[0].chosj].first in toolitems[13] and \
+                   entities[0].armor[3].first==0:
+                    entities[0].armor[3]=entities[0].backpack[entities[0].chosi][entities[0].chosj]
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj]=Item(0)
+                    entities[0].backpack[entities[0].chosi][entities[0].chosj].cnt=0
 
 @window.event
 def on_key_release(symbol,modifiers):
@@ -2548,6 +2736,7 @@ def on_draw():
         return
     
     guibatch=pgt.graphics.Batch()
+    guibatch2=pgt.graphics.Batch()
     guisp=[]
     if iscrafting:
         for i in range(5):
@@ -2586,7 +2775,7 @@ def on_draw():
                               x=896+2.25*34,y=500-4*34,
                               anchor_x='center',anchor_y='center',
                               batch=guibatch))
-    if istooling==True:
+    elif istooling==True:
         for i in range(5):
             if i!=2:
                 guisp.append(pgt.sprite.Sprite(
@@ -2617,7 +2806,7 @@ def on_draw():
                               x=896+2.25*34,y=500-4*34,
                               anchor_x='center',anchor_y='center',
                               batch=guibatch))
-    if toolstep>=0:
+    elif toolstep>=0:
         for i in range(5):
             if i!=2:
                 guisp.append(pgt.sprite.Sprite(
@@ -2633,7 +2822,7 @@ def on_draw():
                 img=iimages[cholist[curchoi2+i]],
                 x=966,y=512-i*34,
                 batch=guibatch))
-    if cooking:
+    elif cooking:
         for i in range(5):
             if i!=2:
                 guisp.append(pgt.sprite.Sprite(
@@ -2670,7 +2859,7 @@ def on_draw():
                               x=896+2.25*34,y=500-4*34,
                               anchor_x='center',anchor_y='center',
                               batch=guibatch))
-    if openbox:
+    elif openbox:
         for i in range(5):
             if i!=2:
                 guisp.append(pgt.sprite.Sprite(
@@ -2698,14 +2887,32 @@ def on_draw():
                 guisp.append(pgt.sprite.Sprite(
                         x=966,y=512-i*34,
                         img=iimages[world[boxxy[0]][boxxy[1]].storage[curchoi+i][2]],
-                        batch=guibatch
+                        batch=guibatch2
                         ))
                 guisp.append(pgt.sprite.Sprite(
                         x=966,y=512-i*34,
                         img=iimages[world[boxxy[0]][boxxy[1]].storage[curchoi+i][3]],
                         batch=guibatch
                         ))
+    else:
+        for i in range(4):
+            if i!=entities[0].achos:
+                guisp.append(pgt.sprite.Sprite(
+                    img=itembg,
+                    x=958,y=504-i*34,
+                    batch=guibatch))
+            else:
+                guisp.append(pgt.sprite.Sprite(
+                    img=chositembg,
+                    x=958,y=504-i*34,
+                    batch=guibatch))
+            guisp.append(pgt.sprite.Sprite(
+                img=iimages[entities[0].armor[i].first],
+                x=966,y=512-i*34,
+                batch=guibatch2))
+    
     guibatch.draw()
+    guibatch2.draw()
     fps_display.draw()
 
 def update(dt):
@@ -2740,10 +2947,10 @@ def update(dt):
                     newx=int(random()*32+32)+entities[0].x
                 else:
                     newx=int(random()*32+32)*-1+entities[0].x
-                if newx>0 and newx<1024 and enum[9]<100 and \
+                if newx>0 and newx<1024 and enum[9]<50 and \
                    biomes[newx//128] in (4,0):
                     newy=dheights[newx]-1
-                    if fall[world[newx][newy].id] and fall[world[newx][newy-1].id]:
+                    if world[newx][newy].id==5 and fall[world[newx][newy-1].id]:
                         entities.append(Pig(newx,newy))
         else:
             if random()<0.01 and enum[10]<15:
