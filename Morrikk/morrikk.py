@@ -448,6 +448,22 @@ class Tool():
             self.canuse+=64
             self.diglvl=2
             self.damage=3
+        elif self.first==112:
+            self.canuse+=96
+            self.diglvl=3
+            self.damage=3
+        elif self.first==116:
+            self.canuse+=84
+            self.diglvl=4
+            self.damage=4
+        elif self.first==120:
+            self.canuse+=84
+            self.diglvl=4
+            self.damage=4
+        elif self.first==124:
+            self.canuse=312
+            self.diglvl=5
+            self.damage=5
         if self.first==100:
             self.canuse+=48
             self.diglvl=1
@@ -456,6 +472,22 @@ class Tool():
             self.canuse+=96
             self.diglvl=2
             self.damage=3
+        elif self.first==113:
+            self.canuse+=128
+            self.diglvl=3
+            self.damage=3
+        elif self.first==117:
+            self.canuse+=116
+            self.diglvl=4
+            self.damage=4
+        elif self.first==121:
+            self.canuse+=116
+            self.diglvl=4
+            self.damage=4
+        elif self.first==125:
+            self.canuse=486
+            self.diglvl=5
+            self.damage=5
         if self.first==103:
             self.canuse+=40
             self.diglvl=1
@@ -464,6 +496,22 @@ class Tool():
             self.canuse+=80
             self.diglvl=2
             self.damage=3
+        elif self.first==114:
+            self.canuse+=114
+            self.diglvl=3
+            self.damage=3
+        elif self.first==118:
+            self.canuse+=102
+            self.diglvl=4
+            self.damage=4
+        elif self.first==122:
+            self.canuse+=102
+            self.diglvl=4
+            self.damage=4
+        elif self.first==126:
+            self.canuse=428
+            self.diglvl=5
+            self.damage=5
         if self.first==106:
             self.canuse+=32
             self.diglvl=1
@@ -471,7 +519,23 @@ class Tool():
         elif self.first==111:
             self.canuse+=64
             self.diglvl=2
-            self.damafge=3
+            self.damage=3
+        elif self.first==115:
+            self.canuse+=96
+            self.diglvl=3
+            self.damage=3
+        elif self.first==119:
+            self.canuse+=84
+            self.diglvl=4
+            self.damage=4
+        elif self.first==123:
+            self.canuse+=84
+            self.diglvl=4
+            self.damage=4
+        elif self.first==127:
+            self.canuse=312
+            self.diglvl=5
+            self.damage=5
         if self.second==15:
             self.canuse+=8
         elif self.second==30:
@@ -785,14 +849,13 @@ class Player(Entity):
         if self.moved>=960:
             self.hungrier(1)
             self.moved=0
-        if self.hunger<=0 and self.moved>=160:
+        if self.hunger<=0 and self.moved>10:
             self.heart-=1
             self.moved=0
         if self.heart<=0:
             isdead=True
         self.flick+=dt*8
     def hurt(self,dx):
-        print(dx)
         if dx<=0:
             super().hurt(dx)
         else:
@@ -815,7 +878,6 @@ class Player(Entity):
                 super().hurt(int(max(armord[i]-floor(dmg)-bool(dmg-floor(dmg)>0.5),0)))
                 if self.armor[i].canuse<=0:
                     self.armor[i]=Tool(0,0,0)
-                print(dmg,armord[i],i)
     def badd(self,iid,num):
         for i in range(8):
             for j in range(6):
@@ -869,11 +931,11 @@ class Player(Entity):
         pass
     def canleft(self):
         return fall[world[self.x+1][self.y-1].id] and \
-               fall[world[self.x+1][self.y-2+(self.jump>0.95)].id] and \
+               fall[world[self.x+1][self.y-2+(self.jump>0.95 or self.isclimbing)].id] and \
                fall[world[self.x+1][self.y-(self.yy==0)].id]
     def canright(self):
         return fall[world[self.x-(self.xx==0)][self.y-1].id] and \
-               fall[world[self.x-(self.xx==0)][self.y-2+(self.jump>0.95)].id] and \
+               fall[world[self.x-(self.xx==0)][self.y-2+(self.jump>0.95 or self.isclimbing)].id] and \
                fall[world[self.x-(self.xx==0)][self.y-(self.yy==0)].id]
     def canjump(self):
         return fall[world[self.x][self.y-2-(self.yy==0)].id] and \
@@ -1018,7 +1080,7 @@ class Bird(Entity):
 
 class KingOTBirds(Entity):
     def __init__(self,cx,cy):
-        super().__init__(cx,cy,0,0,4,250,20,1,1)
+        super().__init__(cx,cy,0,0,4,100,20,1,1)
         self.flick=0
     def draw(self,batch):
         sp=pgt.sprite.Sprite(
@@ -1156,7 +1218,7 @@ class Fireball(Shooted):
                     if self.canright():
                         self.move(0,1)
         for i in entities:
-            if i.dis(self.x,self.y)<=3 and i.id!=6 and i.id!=4 \
+            if i.dis(self.x,self.y)<=1 and i.id!=6 and i.id!=4 \
                and i.id!=3 and i.id!=1 and i.id!=7 and i.id!=11:
                 self.boomed=True
         self.boomed=self.boomed or (self.towardx>0 and not self.canleft()) or \
@@ -1519,7 +1581,7 @@ class DeathGod(Entity):
             self.heart+=int(dt*7)
             if self.heart>self.mxheart:
                 self.heart=self.mxheart
-        if time()-self.dttime>90:
+        if time()-self.dttime>60:
             self.dttime=time()
             rnd=random()
             if rnd<0.5:
@@ -1546,7 +1608,7 @@ def init():
     global ismainmenu,ischoosing,iscrafting,istooling,toolstep,isdead,curchoi,curchoi2,\
            cholist,chol,entities,enum,world,width,height,worlds,chopped,needkotb,\
            dheights,biomes,respawnx,respawny,lworld,dworld,lentities,dentities,\
-           isdark,freezing,manao,final,fin,age,playtm,cooking,openbox,boxxy
+           isdark,freezing,manao,final,fin,age,playtm,cooking,openbox,boxxy,chosed
     playtm=0
     ismainmenu=True
     ischoosing=False
@@ -1561,6 +1623,7 @@ def init():
     isdead=False
     curchoi=0
     curchoi2=0
+    chosed=0
     openbox=False
     boxxy=[0,0]
     cholist=[]
@@ -1617,7 +1680,7 @@ aimages=[]
 bimages=[]
 for i in range(57):
     images.append(pgt.image.load('imgs/blocks/'+str(i)+'.png'))
-for i in range(112):
+for i in range(128):
     iimages.append(pgt.image.load('imgs/items/'+str(i)+'.png'))
 for i in range(9):
     timages.append(pgt.image.load('imgs/tooltypes/'+str(i)+'.png'))
@@ -1657,19 +1720,20 @@ eimages.append([])
 eimages[11].append(pgt.image.load('imgs/entities/11/0.png'))
 for i in range(9):
     limages.append(pgt.image.load('imgs/light/'+str(i)+'.png'))
-for i in range(7):
+for i in range(19):
     aimages.append([])
     aimages[i].append(pgt.image.load('imgs/armor/0/'+str(i)+'.png'))
     aimages[i].append(pgt.image.load('imgs/armor/1/'+str(i)+'.png'))
     aimages[i].append(pgt.image.load('imgs/armor/2/'+str(i)+'.png'))
-for i in range(3):
+for i in range(7):
     bimages.append([[],[]])
     for j in range(5):
         bimages[i][0].append(pgt.image.load('imgs/armor/b/0/'+str(i)+'/'+str(j)+'.png'))
         bimages[i][1].append(pgt.image.load('imgs/armor/b/1/'+str(i)+'/'+str(j)+'.png'))
     bimages[i].append(pgt.image.load('imgs/armor/b/2/'+str(i)+'.png'))
-toaimg={0:0,96:1,100:2,103:3,108:4,109:5,110:6}
-tobimg={0:0,106:1,111:2}
+toaimg={0:0,96:1,100:2,103:3,108:4,109:5,110:6,112:7,113:8,114:9,
+        116:10,117:11,118:12,120:13,121:14,122:15,124:16,125:17,126:18}
+tobimg={0:0,106:1,111:2,115:3,119:4,123:5,127:6}
 hconst=16
 wconst=10
 edgconst=1
@@ -1692,18 +1756,18 @@ drop=[0,1,2,3,4,0,5,6,7,11,13,17,18,24,27,32,33,0,0,34,
 light=[8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,8,0,0,0,
        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
        0,0,8,4,0,0,0,0,0,0,0,0]
-canlit=[True,False,False,False,True,True,False,False,False,
-        True,False,True,True,False,False,True,True,False,False,
-        True,False,False,True,False,True,True,True,True,True,
-        True,True,True,True,True,True,True,True,True,True,
-        True,True,True,True,True,True,True,True,False,False,
-        True,False,True,True,True,True,False,False,True]
+canlit=[True,False,False,False,True,True,False,True,False,
+        True,True,True,True,False,False,True,True,False,False,
+        True,False,True,True,False,True,True,True,True,True,
+        True,True,True,False,True,True,True,True,True,True,
+        True,True,True,True,True,True,True,False,True,True,
+        False,True,True,True,True,False,False,True]
 put=[0,1,2,3,29,0,7,8,0,0,0,9,0,10,0,0,0,11,
      0,0,0,0,0,0,0,0,0,0,0,0,0,0,15,16,19,0,20,21,
      30,25,26,27,0,28,33,34,35,36,0,0,0,0,0,0,0,0,47,
      48,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
      0,0,0,0,0,0,0,0,0,0,0,50,0,0,0,52,56,0,0,0,0,0,
-     0,0,0,0,0,0,0]
+     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 diglvl=[0,1,1,0,0,0,2,0,0,0,1,0,1,3,3,0,0,10000,10000,0,1,2,
         0,0,0,1,0,2,1,1,1,0,0,1,0,0,0,1,10000,10000,10000,10000
         ,10000,10000,10000,10000,3,10000,0,3,0,4,0,0,0,0,0]
@@ -1731,7 +1795,11 @@ iname=[' ','泥土','石头','木头','苹果','铁锭','合成桩',
        '胸甲模板','木胸甲外表','布胸甲内衬','腿甲模板',
        '木腿甲外表','布腿甲内衬','靴子模板','木靴子外表',
        '布靴子内衬','石头盔外表','石胸甲外表','石腿甲外表',
-       '石靴子外表']
+       '石靴子外表','铁头盔外表','铁胸甲外表','铁腿甲外表',
+       '铁靴子外表','银头盔外表','银胸甲外表','银腿甲外表',
+       '银靴子外表','金头盔外表','金胸甲外表','金腿甲外表',
+       '金靴子外表','钻石头盔外表','钻石胸甲外表','钻石腿甲外表',
+       '钻石靴子外表']
 tname=[' ','镐子','锄头','铲子','剑','头盔','胸甲','腿甲','靴子']
 craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            10:((8,1),(2,1)),13:((3,1),(2,1)),14:((7,1),),15:((14,1),(3,1)),
@@ -1753,28 +1821,38 @@ craftdict={2:((17,8),),6:((3,1),),7:((3,1),),8:((7,1),),9:((8,1),(3,1)),
            100:((99,1),(3,1)),101:((99,1),(35,1)),102:((7,1),),
            103:((102,1),(3,1)),104:((102,1),(35,1)),105:((7,1),),
            106:((105,1),(3,10)),107:((105,1),(35,1)),108:((97,1),(2,1)),
-           109:((99,1),(2,1)),110:((102,1),(2,1)),111:((105,1),(2,1))}
+           109:((99,1),(2,1)),110:((102,1),(2,1)),111:((105,1),(2,1)),
+           112:((97,1),(5,1)),113:((99,1),(5,1)),114:((102,1),(5,1)),
+           115:((105,1),(5,1)),116:((97,1),(24,1)),117:((99,1),(24,1)),
+           118:((102,1),(24,1)),119:((105,1),(24,1)),120:((97,1),(27,1)),
+           121:((99,1),(27,1)),122:((102,1),(27,1)),123:((105,1),(27,1)),
+           124:((97,1),(69,1)),125:((99,1),(69,1)),126:((102,1),(69,1)),
+           127:((105,1),(69,1))}
 cancraft=[0,0,2,7,94,95,19,57,35,43,34,41,42,6,13,90,56,66,67,48,8,9,10,16,
           25,28,70,20,21,22,23,26,29,71,72,73,74,75,76,77,78,14,15,30,82,
-          79,80,81,83,84,85,86,87,88,89,97,98,96,108,99,100,101,109,102,104,103,
-          110,105,107,106,111,31,93,33,32,0,0]
+          79,80,81,83,84,85,86,87,88,89,97,98,96,108,112,116,120,124,
+          99,100,101,109,113,117,121,125,102,104,103,110,114,118,122,
+          126,105,107,106,111,115,119,123,127,31,93,33,32,0,0]
 cancraftnum=[0,0,1,2,1,1,2,4,1,2,4,1,1,1,1,1,1,1,1,1,1,1,1,1,
              1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-             1,1,1,1,1,1,1,1,8,0,0]
+             1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+             1,1,1,1,1,1,1,1,1,1,1,8,0,0]
 cookdict={91:((55,1),),49:((41,1),(48,1))}
 cancook=[0,0,91,49,0,0]
 tooltype=[0,0,1,2,3,4,5,6,7,8,0,0]
-toolneed={1:(0,1),2:(2,1),3:(3,1),4:(4,5),5:(7,6),6:(9,8),7:(11,10),
+toolneed={1:(0,1),2:(2,1),3:(3,1),4:(5,4),5:(7,6),6:(9,8),7:(11,10),
           8:(13,12)}
 toolitems={0:(9,10,16,25,28,70),1:(15,30),2:(21,22,23,26,29,71),
            3:(73,74,75,76,77,78),4:(79,80,81),5:(84,85,86,87,88,89),
-           6:(98,),7:(96,108),8:(101,),9:(100,109),10:(104,),11:(103,110),
-           12:(107,),13:(106,111)}
-dprecent=[[0,0.25,0.35,0,0,0],
-          [0,0.3,0.4,0,0,0],
-          [0,0.3,0.4,0,0,0],
-          [0,0.25,0.35,0,0,0]]
+           6:(98,),7:(96,108,112,116,120,124),
+           8:(101,),9:(100,109,113,117,121,125),
+           10:(104,),11:(103,110,114,118,122,126),
+           12:(107,),13:(106,111,115,119,123,127),}
+dprecent=[[0,0.25,0.35,0.45,0.45,0.45,0.5],
+          [0,0.3,0.4,0.475,0.45,0.45,0.55],
+          [0,0.3,0.4,0.475,0.45,0.45,0.55],
+          [0,0.25,0.35,0.475,0.45,0.45,0.5]]
 finalpoem=[
     '你好',
     '这个游戏的主线就这样结束了',
@@ -1828,7 +1906,7 @@ def worldgnr():
                 dworld[i].append(Block(14,i,j))
             elif noise([i/4+2050,j/4+2050])>0.45:
                 dworld[i].append(Block(46,i,j))
-            elif noise([i/3+1025,j/3+1025])<-0.4:
+            elif noise([i/3+1025,j/3+1025])<-0.45:
                 dworld[i].append(Block(49,i,j))
             else:
                 dworld[i].append(Block(2,i,j))
@@ -1871,7 +1949,7 @@ def worldgnr():
                 world[i].append(Block(13,i,j))
             elif noise([i/4,j/4])<-0.45:
                 world[i].append(Block(14,i,j))
-            elif noise([i/3,j/3])<-0.425:
+            elif noise([i/3,j/3])<-0.45:
                 world[i].append(Block(49,i,j))
             elif random()<0.001 and i>150 and j>150:
                 world[i].append(Block(2,i,j))
@@ -2240,7 +2318,7 @@ def readworld():
 @window.event
 def on_key_press(symbol,modifiers):
     global iscrafting,curchoi,ismainmenu,ischoosing,worldname,worlds,isdead
-    global istooling,toolstep,cholist,curchoi2,chol,cooking,openbox
+    global istooling,toolstep,cholist,curchoi2,chol,cooking,openbox,chosed
     if ischoosing and not ismainmenu:
         if symbol==pgt.window.key.PAGEDOWN:
             if curchoi>0:
@@ -2280,6 +2358,7 @@ def on_key_press(symbol,modifiers):
                 readworld()
                 ismainmenu=False
                 ischoosing=False
+                return
         if symbol==pgt.window.key.BACKSPACE:
             ismainmenu=True
             ischoosing=False
@@ -2325,7 +2404,10 @@ def on_key_press(symbol,modifiers):
         elif istooling==True:
             istooling=False
         elif toolstep>=0:
-            pass
+            if toolstep==1:
+                entities[0].badd(chosed,1)
+            toolstep=-1
+            istooling=True
         elif cooking==True:
             cooking=False
         elif openbox:
@@ -2434,9 +2516,10 @@ def on_key_press(symbol,modifiers):
                 toolstep=0
                 curchoi2=0
         elif toolstep>=0:
-            entities[0].bdel(cholist[curchoi2+2],1)
+            chosed=cholist[curchoi2+2]
             chol.append(cholist[curchoi2+2])
             toolstep+=1
+            entities[0].bdel(cholist[curchoi2+2],1)
             if toolstep>=len(toolneed[tooltype[curchoi+2]]):
                 toolstep=-1
                 entities[0].baddt(tooltype[curchoi+2],chol[0],chol[1])
@@ -2488,7 +2571,7 @@ def on_key_press(symbol,modifiers):
                 for i in range(1,len(entities)):
                     if entities[i].dis(entities[0].x,entities[0].y)<=3 and \
                        ((entities[i].x>=entities[0].x and entities[0].lastleft) or \
-                        (entities[i].x<=entities[0].x and not entities[0].lastleft)):
+                        (entities[i].x<=entities[0].x+1 and not entities[0].lastleft)):
                         if entities[0].backpack[entities[0].chosi][entities[0].chosj].id!=12:
                             entities[i].hurt(2)
                         else:
@@ -2949,7 +3032,7 @@ def update(dt):
                     newx=int(random()*32+32)*-1+entities[0].x
                 if newx>0 and newx<1024 and enum[9]<50 and \
                    biomes[newx//128] in (4,0):
-                    newy=dheights[newx]-1
+                    newy=dheights[newx]
                     if world[newx][newy].id==5 and fall[world[newx][newy-1].id]:
                         entities.append(Pig(newx,newy))
         else:
@@ -2981,15 +3064,21 @@ def update(dt):
             entities.append(KingOTBirds(entities[0].x,entities[0].y-2))
             needkotb=False
         for i in range(len(entities)):
-            if abs(entities[0].x-entities[i-dct].x)<=64 and \
+            if abs(entities[0].x-entities[i-dct].x)>=112 or \
+               abs(entities[0].y-entities[i-dct].y)>=112:
+                enum[entities[i-dct].id]-=1
+                entities[i-dct].delled()
+                entities.pop(i-dct)
+                dct+=1
+            elif abs(entities[0].x-entities[i-dct].x)<=64 and \
                abs(entities[0].y-entities[i-dct].y)<=64 and \
                (entities[i-dct].id!=1 or abs(entities[0].y-entities[i-dct].y)<=10):
                 entities[i-dct].update(dt)
                 if entities[i-dct].isdel():
+                    enum[entities[i-dct].id]-=1
                     entities[i-dct].delled()
                     entities.pop(i-dct)
                     dct+=1
-                    enum[entities[i-dct].id]-=1
         for i in range(34):
             for j in range(22):
                 world[i+entities[0].x-hconst][j+entities[0].y-wconst].update(
